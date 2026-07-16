@@ -7,4 +7,5 @@ export default defineConfig({
     mode: 'standalone',
   }),
   server: { host: true, port: 4321 },
+  devToolbar: { enabled: false },
 });
