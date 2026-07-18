@@ -489,8 +489,7 @@ function fillConstructionCoordinates() {
 function populateConstructionDates() {
   const startEl = document.getElementById("constructionStart");
   const endEl = document.getElementById("constructionEnd");
-  const tsEl = document.getElementById("constructionTimestamp");
-  if (!startEl || !endEl || !tsEl) return;
+  if (!startEl || !endEl) return;
   const now = new Date();
   const end = new Date(now);
   end.setDate(end.getDate() + 45);
@@ -500,7 +499,6 @@ function populateConstructionDates() {
   };
   startEl.value = toLocalInput(now);
   endEl.value = toLocalInput(end);
-  tsEl.value = toLocalInput(now);
 }
 
 function normalizeText(value) {
@@ -1992,10 +1990,12 @@ function addConstructionProject() {
   const lng = Number(document.getElementById("constructionLng").value);
   const start = document.getElementById("constructionStart").value;
   const end = document.getElementById("constructionEnd").value;
-  const timestamp = document.getElementById("constructionTimestamp").value;
   const boundaryMeters = Number(document.getElementById("constructionBoundary").value);
-  const photoTheme = document.getElementById("constructionPhotoTheme").value;
   const statusNote = document.getElementById("constructionStatusNote").value.trim();
+  // Timestamp and photo theme are no longer user-entered — derive automatically.
+  const timestamp = toLocalInputValue();
+  const photoThemeKeys = Object.keys(photoPalettes);
+  const photoTheme = photoThemeKeys[projects.length % photoThemeKeys.length];
 
   if (!name) {
     showToast("กรอกชื่องานก่อน");
@@ -2007,8 +2007,8 @@ function addConstructionProject() {
     return;
   }
 
-  if (!start || !end || !timestamp) {
-    showToast("กรอกเวลาเริ่ม สิ้นสุด และ Timestamp ให้ครบ");
+  if (!start || !end) {
+    showToast("กรอกเวลาเริ่มและสิ้นสุดให้ครบ");
     return;
   }
 

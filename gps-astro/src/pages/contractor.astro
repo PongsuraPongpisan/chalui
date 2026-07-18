@@ -25,21 +25,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               <label><span>ประเภทงาน</span><select id="constructionType"><option value="Road resurfacing">ซ่อมผิวจราจร</option><option value="Drainage">ระบบระบายน้ำ</option><option value="Utility relocation">ย้ายสาธารณูปโภค</option><option value="Bridge repair">ซ่อมสะพาน</option><option value="Signal upgrade">ปรับสัญญาณ</option></select></label>
               <label><span>สถานะ</span><select id="constructionStatus"><option value="in-progress">กำลังทำ</option><option value="delayed">ล่าช้า</option><option value="planned">วางแผน</option><option value="completed">เสร็จสิ้น</option></select></label>
             </div>
-            <label><span>ถนน / Corridor</span><select id="constructionRoad"></select></label>
+            <label><span>ถนน</span><select id="constructionRoad"></select></label>
             <div class="card-grid two">
-              <label><span>Latitude</span><input id="constructionLat" type="number" step="0.000001"></label>
-              <label><span>Longitude</span><input id="constructionLng" type="number" step="0.000001"></label>
+              <label><span>ละติจูด</span><input id="constructionLat" type="number" step="0.000001"></label>
+              <label><span>ลองจิจูด</span><input id="constructionLng" type="number" step="0.000001"></label>
             </div>
             <div class="card-grid two">
               <label><span>เริ่มงาน</span><input id="constructionStart" type="datetime-local"></label>
               <label><span>สิ้นสุด</span><input id="constructionEnd" type="datetime-local"></label>
             </div>
             <div class="card-grid two">
-              <label><span>Timestamp</span><input id="constructionTimestamp" type="datetime-local"></label>
               <label><span>ขอบเขต (ม.)</span><input id="constructionBoundary" type="number" min="40" max="900" step="10" value="280"></label>
-            </div>
-            <div class="card-grid two">
-              <label><span>โทนรูปพื้นที่</span><select id="constructionPhotoTheme"><option value="black-red-white">ดำ/แดง/ขาว</option><option value="green-yellow-white">เขียว/เหลือง/ขาว</option></select></label>
               <label><span>หมายเหตุ</span><input id="constructionStatusNote" type="text" placeholder="เช่น ปิด 1 ช่อง"></label>
             </div>
           </div>
