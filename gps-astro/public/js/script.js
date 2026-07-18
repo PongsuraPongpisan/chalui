@@ -2035,7 +2035,12 @@ function addConstructionProject() {
     boundaryMeters,
     photoTheme,
     photoColors: photoPalettes[photoTheme],
-    statusNote: statusNote || defaultStatusNotes[status]
+    statusNote: statusNote || defaultStatusNotes[status],
+    // 8-checkpoint compliance photos (optional — not required to submit).
+    // Shape: { cone: [dataUrl,...], warning_sign: [...], flashing_light: [...],
+    //          barrier: [...], lane_marking: [...], speed_limit_sign: [...],
+    //          detour: [...], other: [...] }
+    checkpointPhotos: (typeof window !== "undefined" && window.checkpointPhotos) ? window.checkpointPhotos : {}
   };
 
   projects.push(project);
@@ -2059,6 +2064,14 @@ function addConstructionProject() {
   selectProject(project.id, true);
   openProjectDetail(project);
   showToast(`Added: ${project.name}`);
+
+  // Reset the 8-checkpoint photo picker for the next submission
+  if (typeof window !== "undefined" && window.checkpointPhotos) {
+    Object.keys(window.checkpointPhotos).forEach((key) => { window.checkpointPhotos[key] = []; });
+    document.querySelectorAll(".checkpoint-thumbs").forEach((el) => { el.innerHTML = ""; });
+    const progressEl = document.getElementById("checkpointProgress");
+    if (progressEl) progressEl.textContent = "แนบรูปแล้ว 0/8 จุด";
+  }
 
   if (activeRoute) {
     calculateRoute();
