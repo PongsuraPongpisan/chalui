@@ -60,7 +60,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             <input id="contractorPhotoCamera" class="visually-hidden" type="file" accept="image/*" capture="environment">
             <input id="contractorPhotoGallery" class="visually-hidden" type="file" accept="image/*" multiple>
           </div>
-          <img id="contractorPhotoPreview" alt="preview" style="display:none;width:100%;border-radius:12px;margin-top:10px;max-height:200px;object-fit:cover">
+          <div class="checkpoint-thumbs" id="contractorPhotoThumbs" style="margin-top:10px"></div>
         </div>
 
         <div class="card glass-panel" style="border-left: 4px solid var(--teal);">
@@ -208,31 +208,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         document.getElementById(btn.dataset.section).classList.remove('section-hidden');
       });
     });
-    // ─── Original single site-overview photo (camera + gallery, separate inputs) ───
-    function bindSinglePhotoInput(id) {
-      const input = document.getElementById(id);
-      if (!input) return;
-      input.addEventListener('change', (e) => {
-        const f = e.target.files && e.target.files[0];
-        if (!f) return;
-        const r = new FileReader();
-        r.onload = (ev) => {
-          const img = document.getElementById('contractorPhotoPreview');
-          img.src = ev.target.result;
-          img.style.display = 'block';
-        };
-        r.readAsDataURL(f);
-      });
-    }
-    bindSinglePhotoInput('contractorPhotoCamera');
-    bindSinglePhotoInput('contractorPhotoGallery');
-
-    // ─── 8-checkpoint photo capture (separate camera + gallery inputs per point,
-    // since Android/iOS hide the camera option once `multiple` is set) ───
-    // window.checkpointPhotos: { cone: [dataUrl, ...], warning_sign: [...], ... }
-    window.checkpointPhotos = window.checkpointPhotos || {};
-    const CHECKPOINT_TOTAL = 8;
-
     function readAsDataUrl(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -241,6 +216,49 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         reader.readAsDataURL(file);
       });
     }
+
+    // ─── Original site-overview photo (multi-photo, removable — same pattern as checkpoints) ───
+    window.sitePhotos = window.sitePhotos || [];
+
+    function renderSitePhotoThumbs() {
+      const wrap = document.getElementById('contractorPhotoThumbs');
+      if (!wrap) return;
+      wrap.innerHTML = window.sitePhotos.map((src, i) => `
+        <div class="checkpoint-thumb">
+          <img src="${src}" alt="">
+          <button type="button" class="checkpoint-thumb-remove" data-site-index="${i}" aria-label="ลบรูป">×</button>
+        </div>
+      `).join('');
+    }
+
+    function bindSinglePhotoInput(id) {
+      const input = document.getElementById(id);
+      if (!input) return;
+      input.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+        const dataUrls = await Promise.all(files.map(readAsDataUrl));
+        window.sitePhotos = window.sitePhotos.concat(dataUrls);
+        renderSitePhotoThumbs();
+        e.target.value = '';
+      });
+    }
+    bindSinglePhotoInput('contractorPhotoCamera');
+    bindSinglePhotoInput('contractorPhotoGallery');
+
+    document.getElementById('contractorPhotoThumbs')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('.checkpoint-thumb-remove');
+      if (!btn) return;
+      const index = Number(btn.dataset.siteIndex);
+      window.sitePhotos.splice(index, 1);
+      renderSitePhotoThumbs();
+    });
+
+    // ─── 8-checkpoint photo capture (separate camera + gallery inputs per point,
+    // since Android/iOS hide the camera option once `multiple` is set) ───
+    // window.checkpointPhotos: { cone: [dataUrl, ...], warning_sign: [...], ... }
+    window.checkpointPhotos = window.checkpointPhotos || {};
+    const CHECKPOINT_TOTAL = 8;
 
     function renderCheckpointThumbs(key) {
       const wrap = document.querySelector(`.checkpoint-thumbs[data-thumbs="${key}"]`);
