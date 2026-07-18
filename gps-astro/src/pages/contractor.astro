@@ -46,57 +46,107 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
 
         <div class="card glass-panel" style="border-left: 4px solid var(--teal);">
-          <h3 style="color: var(--teal);"><i class="fa-solid fa-camera"></i> รูปถ่ายหน้างาน — 8 จุดสำคัญ</h3>
+          <h3 style="color: var(--teal);"><i class="fa-solid fa-camera"></i> รูปถ่ายหน้างาน</h3>
+          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:12px">ถ่ายรูปสภาพหน้างานเพื่อส่งตรวจ AI</p>
+          <div class="photo-upload-area">
+            <label class="camera-button" for="contractorPhotoCamera">
+              <i class="fa-solid fa-camera"></i>
+              <span>ถ่ายรูป</span>
+            </label>
+            <label class="gallery-button" for="contractorPhotoGallery">
+              <i class="fa-solid fa-images"></i>
+              <span>เลือกรูป</span>
+            </label>
+            <input id="contractorPhotoCamera" class="visually-hidden" type="file" accept="image/*" capture="environment">
+            <input id="contractorPhotoGallery" class="visually-hidden" type="file" accept="image/*" multiple>
+          </div>
+          <img id="contractorPhotoPreview" alt="preview" style="display:none;width:100%;border-radius:12px;margin-top:10px;max-height:200px;object-fit:cover">
+        </div>
+
+        <div class="card glass-panel" style="border-left: 4px solid var(--teal);">
+          <h3 style="color: var(--teal);"><i class="fa-solid fa-list-check"></i> รูปตรวจมาตรฐาน — 8 จุดสำคัญ</h3>
           <p style="font-size:0.82rem;color:var(--muted);margin-bottom:4px">ถ่ายหรือเลือกรูปจากคลังภาพได้หลายรูปต่อจุด — ไม่บังคับ ส่งงานได้แม้ไม่มีรูป</p>
           <p style="font-size:0.78rem;color:var(--teal);font-weight:600;margin-bottom:12px" id="checkpointProgress">แนบรูปแล้ว 0/8 จุด</p>
           <div class="checkpoint-grid" id="checkpointGrid">
             <div class="checkpoint-card" data-checkpoint="cone">
               <div class="checkpoint-head"><span class="checkpoint-num">1</span><i class="fa-solid fa-triangle-exclamation"></i><span>กรวยจราจร</span></div>
-              <label class="checkpoint-upload" for="checkpoint-cone-input"><i class="fa-solid fa-camera"></i> ถ่าย/เลือกรูป</label>
-              <input id="checkpoint-cone-input" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="cone">
+              <div class="checkpoint-actions">
+                <label class="checkpoint-btn cam" for="checkpoint-cone-camera"><i class="fa-solid fa-camera"></i> ถ่าย</label>
+                <label class="checkpoint-btn gal" for="checkpoint-cone-gallery"><i class="fa-solid fa-images"></i> เลือก</label>
+              </div>
+              <input id="checkpoint-cone-camera" class="visually-hidden checkpoint-input" type="file" accept="image/*" capture="environment" data-checkpoint="cone">
+              <input id="checkpoint-cone-gallery" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="cone">
               <div class="checkpoint-thumbs" data-thumbs="cone"></div>
             </div>
             <div class="checkpoint-card" data-checkpoint="warning_sign">
               <div class="checkpoint-head"><span class="checkpoint-num">2</span><i class="fa-solid fa-sign-hanging"></i><span>ป้ายเตือน</span></div>
-              <label class="checkpoint-upload" for="checkpoint-warning_sign-input"><i class="fa-solid fa-camera"></i> ถ่าย/เลือกรูป</label>
-              <input id="checkpoint-warning_sign-input" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="warning_sign">
+              <div class="checkpoint-actions">
+                <label class="checkpoint-btn cam" for="checkpoint-warning_sign-camera"><i class="fa-solid fa-camera"></i> ถ่าย</label>
+                <label class="checkpoint-btn gal" for="checkpoint-warning_sign-gallery"><i class="fa-solid fa-images"></i> เลือก</label>
+              </div>
+              <input id="checkpoint-warning_sign-camera" class="visually-hidden checkpoint-input" type="file" accept="image/*" capture="environment" data-checkpoint="warning_sign">
+              <input id="checkpoint-warning_sign-gallery" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="warning_sign">
               <div class="checkpoint-thumbs" data-thumbs="warning_sign"></div>
             </div>
             <div class="checkpoint-card" data-checkpoint="flashing_light">
               <div class="checkpoint-head"><span class="checkpoint-num">3</span><i class="fa-solid fa-lightbulb"></i><span>ไฟเตือน</span></div>
-              <label class="checkpoint-upload" for="checkpoint-flashing_light-input"><i class="fa-solid fa-camera"></i> ถ่าย/เลือกรูป</label>
-              <input id="checkpoint-flashing_light-input" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="flashing_light">
+              <div class="checkpoint-actions">
+                <label class="checkpoint-btn cam" for="checkpoint-flashing_light-camera"><i class="fa-solid fa-camera"></i> ถ่าย</label>
+                <label class="checkpoint-btn gal" for="checkpoint-flashing_light-gallery"><i class="fa-solid fa-images"></i> เลือก</label>
+              </div>
+              <input id="checkpoint-flashing_light-camera" class="visually-hidden checkpoint-input" type="file" accept="image/*" capture="environment" data-checkpoint="flashing_light">
+              <input id="checkpoint-flashing_light-gallery" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="flashing_light">
               <div class="checkpoint-thumbs" data-thumbs="flashing_light"></div>
             </div>
             <div class="checkpoint-card" data-checkpoint="barrier">
               <div class="checkpoint-head"><span class="checkpoint-num">4</span><i class="fa-solid fa-road-barrier"></i><span>แผงกั้นเขตก่อสร้าง</span></div>
-              <label class="checkpoint-upload" for="checkpoint-barrier-input"><i class="fa-solid fa-camera"></i> ถ่าย/เลือกรูป</label>
-              <input id="checkpoint-barrier-input" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="barrier">
+              <div class="checkpoint-actions">
+                <label class="checkpoint-btn cam" for="checkpoint-barrier-camera"><i class="fa-solid fa-camera"></i> ถ่าย</label>
+                <label class="checkpoint-btn gal" for="checkpoint-barrier-gallery"><i class="fa-solid fa-images"></i> เลือก</label>
+              </div>
+              <input id="checkpoint-barrier-camera" class="visually-hidden checkpoint-input" type="file" accept="image/*" capture="environment" data-checkpoint="barrier">
+              <input id="checkpoint-barrier-gallery" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="barrier">
               <div class="checkpoint-thumbs" data-thumbs="barrier"></div>
             </div>
             <div class="checkpoint-card" data-checkpoint="lane_marking">
               <div class="checkpoint-head"><span class="checkpoint-num">5</span><i class="fa-solid fa-road"></i><span>เส้นแบ่งช่องทาง</span></div>
-              <label class="checkpoint-upload" for="checkpoint-lane_marking-input"><i class="fa-solid fa-camera"></i> ถ่าย/เลือกรูป</label>
-              <input id="checkpoint-lane_marking-input" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="lane_marking">
+              <div class="checkpoint-actions">
+                <label class="checkpoint-btn cam" for="checkpoint-lane_marking-camera"><i class="fa-solid fa-camera"></i> ถ่าย</label>
+                <label class="checkpoint-btn gal" for="checkpoint-lane_marking-gallery"><i class="fa-solid fa-images"></i> เลือก</label>
+              </div>
+              <input id="checkpoint-lane_marking-camera" class="visually-hidden checkpoint-input" type="file" accept="image/*" capture="environment" data-checkpoint="lane_marking">
+              <input id="checkpoint-lane_marking-gallery" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="lane_marking">
               <div class="checkpoint-thumbs" data-thumbs="lane_marking"></div>
             </div>
             <div class="checkpoint-card" data-checkpoint="speed_limit_sign">
               <div class="checkpoint-head"><span class="checkpoint-num">6</span><i class="fa-solid fa-gauge-high"></i><span>ป้ายจำกัดความเร็ว</span></div>
-              <label class="checkpoint-upload" for="checkpoint-speed_limit_sign-input"><i class="fa-solid fa-camera"></i> ถ่าย/เลือกรูป</label>
-              <input id="checkpoint-speed_limit_sign-input" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="speed_limit_sign">
+              <div class="checkpoint-actions">
+                <label class="checkpoint-btn cam" for="checkpoint-speed_limit_sign-camera"><i class="fa-solid fa-camera"></i> ถ่าย</label>
+                <label class="checkpoint-btn gal" for="checkpoint-speed_limit_sign-gallery"><i class="fa-solid fa-images"></i> เลือก</label>
+              </div>
+              <input id="checkpoint-speed_limit_sign-camera" class="visually-hidden checkpoint-input" type="file" accept="image/*" capture="environment" data-checkpoint="speed_limit_sign">
+              <input id="checkpoint-speed_limit_sign-gallery" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="speed_limit_sign">
               <div class="checkpoint-thumbs" data-thumbs="speed_limit_sign"></div>
             </div>
             <div class="checkpoint-card" data-checkpoint="detour">
               <div class="checkpoint-head"><span class="checkpoint-num">7</span><i class="fa-solid fa-diamond-turn-right"></i><span>ทางเบี่ยง</span></div>
-              <label class="checkpoint-upload" for="checkpoint-detour-input"><i class="fa-solid fa-camera"></i> ถ่าย/เลือกรูป</label>
-              <input id="checkpoint-detour-input" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="detour">
+              <div class="checkpoint-actions">
+                <label class="checkpoint-btn cam" for="checkpoint-detour-camera"><i class="fa-solid fa-camera"></i> ถ่าย</label>
+                <label class="checkpoint-btn gal" for="checkpoint-detour-gallery"><i class="fa-solid fa-images"></i> เลือก</label>
+              </div>
+              <input id="checkpoint-detour-camera" class="visually-hidden checkpoint-input" type="file" accept="image/*" capture="environment" data-checkpoint="detour">
+              <input id="checkpoint-detour-gallery" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="detour">
               <div class="checkpoint-thumbs" data-thumbs="detour"></div>
             </div>
-            <div class="checkpoint-card" data-checkpoint="other">
-              <div class="checkpoint-head"><span class="checkpoint-num">8</span><i class="fa-solid fa-ellipsis"></i><span>อื่นๆ / ภาพรวม</span></div>
-              <label class="checkpoint-upload" for="checkpoint-other-input"><i class="fa-solid fa-camera"></i> ถ่าย/เลือกรูป</label>
-              <input id="checkpoint-other-input" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="other">
-              <div class="checkpoint-thumbs" data-thumbs="other"></div>
+            <div class="checkpoint-card" data-checkpoint="construction_zone">
+              <div class="checkpoint-head"><span class="checkpoint-num">8</span><i class="fa-solid fa-map-location-dot"></i><span>เขตก่อสร้าง</span></div>
+              <div class="checkpoint-actions">
+                <label class="checkpoint-btn cam" for="checkpoint-construction_zone-camera"><i class="fa-solid fa-camera"></i> ถ่าย</label>
+                <label class="checkpoint-btn gal" for="checkpoint-construction_zone-gallery"><i class="fa-solid fa-images"></i> เลือก</label>
+              </div>
+              <input id="checkpoint-construction_zone-camera" class="visually-hidden checkpoint-input" type="file" accept="image/*" capture="environment" data-checkpoint="construction_zone">
+              <input id="checkpoint-construction_zone-gallery" class="visually-hidden checkpoint-input" type="file" accept="image/*" multiple data-checkpoint="construction_zone">
+              <div class="checkpoint-thumbs" data-thumbs="construction_zone"></div>
             </div>
           </div>
         </div>
@@ -158,7 +208,27 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         document.getElementById(btn.dataset.section).classList.remove('section-hidden');
       });
     });
-    // ─── 8-checkpoint photo capture (camera + gallery combined, multi-photo per point) ───
+    // ─── Original single site-overview photo (camera + gallery, separate inputs) ───
+    function bindSinglePhotoInput(id) {
+      const input = document.getElementById(id);
+      if (!input) return;
+      input.addEventListener('change', (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = (ev) => {
+          const img = document.getElementById('contractorPhotoPreview');
+          img.src = ev.target.result;
+          img.style.display = 'block';
+        };
+        r.readAsDataURL(f);
+      });
+    }
+    bindSinglePhotoInput('contractorPhotoCamera');
+    bindSinglePhotoInput('contractorPhotoGallery');
+
+    // ─── 8-checkpoint photo capture (separate camera + gallery inputs per point,
+    // since Android/iOS hide the camera option once `multiple` is set) ───
     // window.checkpointPhotos: { cone: [dataUrl, ...], warning_sign: [...], ... }
     window.checkpointPhotos = window.checkpointPhotos || {};
     const CHECKPOINT_TOTAL = 8;

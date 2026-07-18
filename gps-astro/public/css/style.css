@@ -967,6 +967,45 @@ select:focus,
   background: rgba(31, 154, 154, 0.08);
 }
 
+.checkpoint-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.checkpoint-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 6px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms;
+}
+
+.checkpoint-btn.cam {
+  border: 1.5px solid var(--teal);
+  color: #fff;
+  background: var(--teal);
+}
+
+.checkpoint-btn.cam:hover {
+  background: #178080;
+}
+
+.checkpoint-btn.gal {
+  border: 1.5px solid var(--line);
+  color: var(--text);
+  background: var(--panel-strong);
+}
+
+.checkpoint-btn.gal:hover {
+  background: var(--line);
+}
+
 .checkpoint-thumbs {
   display: flex;
   flex-wrap: wrap;
