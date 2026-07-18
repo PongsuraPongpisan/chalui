@@ -7,16 +7,21 @@ const THAILLM_ENDPOINT = "https://thaillm.or.th/api/v1/chat/completions";
 const THAILLM_MODEL = "typhoon-s-thaillm-8b-instruct";
 
 function getApiKey() {
-  // Prefer an env var; fall back to the POC key so the demo works out of the box.
   return (
     (import.meta.env && import.meta.env.THAILLM_API_KEY) ||
     (typeof process !== "undefined" && process.env && process.env.THAILLM_API_KEY) ||
-    "YOo9UCZRrU8BhdndNlN1aNkQ1aq3li0j"
+    null
   );
 }
 
 export async function POST({ request }) {
   try {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      // No key configured — client falls back to its local grounded answer.
+      return json({ error: "missing_api_key" });
+    }
+
     const body = await request.json();
     const { systemPrompt, userInput } = body;
 
@@ -29,7 +34,7 @@ export async function POST({ request }) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getApiKey()}`
+        Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: THAILLM_MODEL,

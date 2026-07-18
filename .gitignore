@@ -1,7 +1,11 @@
 node_modules/
 dist/
 .astro/
+.vercel/
 *.log
 .DS_Store
 _check.txt
 _syntax.txt
+.env
+.env.*
+!.env.example
