@@ -21,6 +21,10 @@ const { title, role } = Astro.props;
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" is:inline></script>
     <script is:inline define:vars={{ role }}>
       window.APP_ROLE = role || 'traveler';
+      document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/';
+      });
     </script>
     <script src="/js/ai-auditor.js" is:inline></script>
     <script src="/js/karc.js" is:inline></script>

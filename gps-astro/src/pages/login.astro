@@ -1,0 +1,143 @@
+---
+// Login page — used by Admin and Contractor only. Traveler stays public.
+const role = Astro.url.searchParams.get("role") || "";
+const redirectTo = Astro.url.searchParams.get("redirect") || "/";
+const roleLabel = role === "admin" ? "เจ้าหน้าที่ ทล. (Admin)" : role === "contractor" ? "ผู้รับเหมา (Contractor)" : "";
+---
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>เข้าสู่ระบบ — ฉลุย (Chalui)</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <style>
+      * { box-sizing: border-box; margin: 0; }
+      body {
+        font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(circle at top right, #113626, transparent 40%),
+                    radial-gradient(circle at bottom left, #0a1f16, transparent 40%),
+                    linear-gradient(135deg, #0d2218 0%, #15382a 50%, #0a1912 100%);
+        background-attachment: fixed;
+        color: #fff;
+        padding: 20px;
+      }
+      .container {
+        max-width: 380px;
+        width: 100%;
+        text-align: center;
+      }
+      .logo { font-size: 2.5rem; margin-bottom: 8px; }
+      h1 { font-size: 1.4rem; font-weight: 800; margin-bottom: 4px; }
+      .subtitle { color: #a8d5ba; font-size: 0.85rem; margin-bottom: 28px; }
+      form {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 16px;
+        padding: 24px;
+        display: grid;
+        gap: 14px;
+        text-align: left;
+      }
+      label { font-size: 0.8rem; color: #a8d5ba; display: block; margin-bottom: 6px; }
+      input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(0,0,0,0.2);
+        color: #fff;
+        font-size: 0.95rem;
+      }
+      input:focus { outline: none; border-color: #23a455; }
+      button {
+        margin-top: 6px;
+        padding: 12px;
+        border-radius: 10px;
+        border: none;
+        background: linear-gradient(135deg, #23a455, #1abc9c);
+        color: #fff;
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.6; cursor: not-allowed; }
+      .error {
+        color: #ff8a80;
+        font-size: 0.85rem;
+        min-height: 1.2em;
+      }
+      .back-link {
+        display: inline-block;
+        margin-top: 20px;
+        color: rgba(255,255,255,0.5);
+        font-size: 0.8rem;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">🛣️</div>
+      <h1>เข้าสู่ระบบ</h1>
+      <p class="subtitle">{roleLabel || "ฉลุย (Chalui)"}</p>
+
+      <form id="loginForm">
+        <div>
+          <label for="username">ชื่อผู้ใช้</label>
+          <input id="username" name="username" type="text" autocomplete="username" required />
+        </div>
+        <div>
+          <label for="password">รหัสผ่าน</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required />
+        </div>
+        <p class="error" id="loginError"></p>
+        <button id="loginBtn" type="submit">เข้าสู่ระบบ</button>
+      </form>
+
+      <a href="/" class="back-link">← กลับหน้าแรก</a>
+    </div>
+
+    <script define:vars={{ redirectTo }}>
+      const form = document.getElementById("loginForm");
+      const errorEl = document.getElementById("loginError");
+      const btn = document.getElementById("loginBtn");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        errorEl.textContent = "";
+        btn.disabled = true;
+        btn.textContent = "กำลังเข้าสู่ระบบ...";
+
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+
+        try {
+          const res = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json();
+
+          if (!data.success) {
+            errorEl.textContent = data.message || "เข้าสู่ระบบไม่สำเร็จ";
+            btn.disabled = false;
+            btn.textContent = "เข้าสู่ระบบ";
+            return;
+          }
+
+          window.location.href = redirectTo || "/";
+        } catch (err) {
+          errorEl.textContent = "เกิดข้อผิดพลาด กรุณาลองใหม่";
+          btn.disabled = false;
+          btn.textContent = "เข้าสู่ระบบ";
+        }
+      });
+    </script>
+  </body>
+</html>
