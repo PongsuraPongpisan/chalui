@@ -953,6 +953,219 @@ select:focus,
   display: block;
 }
 
+/* ─── Construction Report Detail Page (full layout) ─── */
+.report-detail-grid {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  gap: 18px;
+}
+
+.report-section {
+  display: grid;
+  gap: 10px;
+}
+
+.report-section-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.report-section-title i {
+  color: var(--teal);
+}
+
+.listing-contractor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: -4px 0 4px;
+}
+
+.listing-contractor i {
+  color: var(--blue);
+}
+
+/* Gallery strip beneath the cover — click any thumb to jump the cover to it */
+.report-gallery-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.report-gallery-strip img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 2px solid transparent;
+  transition: border-color 150ms;
+}
+
+.report-gallery-strip img.active {
+  border-color: var(--teal);
+}
+
+/* Location map */
+.report-map {
+  width: 100%;
+  height: 260px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #e5e7eb;
+}
+
+/* Checkpoint inspection albums */
+.checkpoint-album-group {
+  margin-bottom: 14px;
+}
+
+.checkpoint-album-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 6px;
+}
+
+.checkpoint-album-title .checkpoint-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--teal);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.checkpoint-album-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.checkpoint-album-strip img {
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.checkpoint-album-empty {
+  font-size: 0.76rem;
+  color: var(--muted);
+  padding: 10px 0;
+}
+
+/* Fullscreen lightbox — used for cover gallery + checkpoint albums */
+.image-lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(0, 0, 0, 0.9);
+  align-items: center;
+  justify-content: center;
+}
+
+.image-lightbox.visible {
+  display: flex;
+}
+
+.image-lightbox img {
+  max-width: 92vw;
+  max-height: 86vh;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.lightbox-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-arrow:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.lightbox-arrow.prev { left: 16px; }
+.lightbox-arrow.next { right: 16px; }
+
+.lightbox-counter {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+@media (min-width: 760px) {
+  .report-detail-grid {
+    padding: 8px 0 32px;
+  }
+  .listing-cover {
+    aspect-ratio: 16 / 7;
+  }
+}
+
 /* ─── Listing-card style detail (Admin construction report) ─── */
 .listing-cover {
   position: relative;
@@ -969,6 +1182,7 @@ select:focus,
   height: 100%;
   object-fit: cover;
   display: block;
+  cursor: pointer;
 }
 
 .listing-badge {
@@ -990,7 +1204,6 @@ select:focus,
 .listing-cover-arrow {
   position: absolute;
   top: 50%;
-  right: 10px;
   transform: translateY(-50%);
   z-index: 2;
   width: 32px;
@@ -1004,6 +1217,9 @@ select:focus,
   justify-content: center;
   cursor: pointer;
 }
+
+.listing-cover-arrow.next { right: 10px; }
+.listing-cover-arrow.prev { left: 10px; }
 
 .listing-cover-arrow:hover {
   background: #fff;
