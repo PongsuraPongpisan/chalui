@@ -21,6 +21,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       <!-- Construction Reports section -->
       <section id="sec-ai">
+        <!-- Work level overview (ระดับงาน) -->
+        <div class="card glass-panel" style="border-left: 4px solid var(--amber);">
+          <h3 style="color: var(--amber);"><i class="fa-solid fa-layer-group"></i> ระดับงานก่อสร้างในระบบ</h3>
+          <p style="font-size:0.8rem;color:#68746f;margin:-4px 0 12px">จัดระดับตามความเสี่ยง/ผลกระทบจราจร — แตะการ์ดเพื่อกรองรายงานตามระดับ</p>
+          <div id="workLevelOverview" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px"></div>
+        </div>
+
         <div class="card glass-panel" style="border-left: 4px solid var(--teal);">
           <h3 style="color: var(--teal);"><i class="fa-solid fa-helmet-safety"></i> รายงานก่อสร้างทั้งหมด</h3>
           <p style="font-size:0.8rem;color:#68746f;margin:-4px 0 12px">รายงานพื้นที่ก่อสร้างที่ผู้รับเหมาส่งเข้ามา — แตะเพื่อดูรายละเอียดและรูปถ่าย</p>
