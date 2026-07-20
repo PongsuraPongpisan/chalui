@@ -1986,6 +1986,10 @@ function addConstructionProject() {
   const name = document.getElementById("constructionName").value.trim();
   const workType = document.getElementById("constructionType").value;
   const status = document.getElementById("constructionStatus").value;
+  const requestedWorkLevel = document.getElementById("constructionWorkLevel")?.value || "medium";
+  const workLevel = ["critical", "high", "medium", "routine"].includes(requestedWorkLevel)
+    ? requestedWorkLevel
+    : "medium";
   const lat = Number(document.getElementById("constructionLat").value);
   const lng = Number(document.getElementById("constructionLng").value);
   const start = document.getElementById("constructionStart").value;
@@ -2024,6 +2028,7 @@ function addConstructionProject() {
     province: anchor.province,
     contractor: "User submitted",
     status,
+    workLevel,
     start,
     end,
     lat,

@@ -947,9 +947,39 @@ select:focus,
 }
 
 .admin-report-link {
+  position: relative;
+  padding-bottom: 48px;
   color: inherit;
   text-decoration: none;
 }
+
+.construction-level-badge,
+.report-level-chip {
+  --level-color: #eab308;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--level-color) 55%, white);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--level-color) 13%, white);
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.construction-level-badge {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+}
+
+.level-critical { --level-color: #dc2626; }
+.level-high { --level-color: #f59e0b; }
+.level-medium { --level-color: #eab308; }
+.level-routine { --level-color: #22c55e; }
 
 .report-detail-card {
   padding: 16px;

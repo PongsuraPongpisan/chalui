@@ -65,6 +65,8 @@ function renderConstructionReportListOnly() {
   container.innerHTML = list.map((p) => {
     const cover = Array.isArray(p.sitePhotos) && p.sitePhotos[0] ? p.sitePhotos[0] : MOCK_COVER_PHOTO;
     const reportId = encodeURIComponent(String(p.id));
+    const levelKey = WORK_LEVEL_META[p.workLevel] ? p.workLevel : 'medium';
+    const level = WORK_LEVEL_META[levelKey];
     return `
     <a class="admin-queue-card admin-report-link" href="/admin/reports/${reportId}">
       <img class="report-card-thumb" src="${cover}" alt="รูปหน้างาน">
@@ -73,6 +75,7 @@ function renderConstructionReportListOnly() {
         <span>${p.roadName || ''} — ${p.contractor}</span>
         <span>สถานะ: ${statusLabelOf(p.status)}</span>
       </div>
+      <span class="construction-level-badge level-${levelKey}">${level.icon} ${level.code} · ${level.label}</span>
     </a>
   `;
   }).join('');

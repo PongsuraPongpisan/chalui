@@ -25,6 +25,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               <label><span>ประเภทงาน</span><select id="constructionType"><option value="Road resurfacing">ซ่อมผิวจราจร</option><option value="Drainage">ระบบระบายน้ำ</option><option value="Utility relocation">ย้ายสาธารณูปโภค</option><option value="Bridge repair">ซ่อมสะพาน</option><option value="Signal upgrade">ปรับสัญญาณ</option></select></label>
               <label><span>สถานะ</span><select id="constructionStatus"><option value="in-progress">กำลังทำ</option><option value="delayed">ล่าช้า</option><option value="planned">วางแผน</option><option value="completed">เสร็จสิ้น</option></select></label>
             </div>
+            <label><span>ระดับงานก่อสร้าง</span><select id="constructionWorkLevel"><option value="critical">ระดับ 1 — วิกฤต</option><option value="high">ระดับ 2 — สูง</option><option value="medium" selected>ระดับ 3 — ปานกลาง</option><option value="routine">ระดับ 4 — ทั่วไป</option></select></label>
             <label><span>ถนน</span><select id="constructionRoad"></select></label>
             <div class="card-grid two">
               <label><span>ละติจูด</span><input id="constructionLat" type="number" step="0.000001"></label>
