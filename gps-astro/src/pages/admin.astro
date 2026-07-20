@@ -55,68 +55,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-      <!-- Construction report detail — full page view (not a popup) -->
-      <section class="admin-page-view" id="reportDetailPage" aria-hidden="true">
-        <header class="admin-page-header">
-          <button class="back-btn" id="closeReportDetail" type="button" aria-label="กลับ"><i class="fa-solid fa-arrow-left"></i></button>
-          <p class="eyebrow">รายงานก่อสร้าง</p>
-        </header>
-        <div class="admin-page-body report-detail-grid">
-
-          <!-- Site photo gallery (swipeable album) -->
-          <div class="report-section">
-            <div class="listing-cover" id="reportCoverWrap">
-              <span class="listing-badge" id="reportCoverBadge">-</span>
-              <img class="listing-cover-img" id="reportCoverImg" alt="รูปหน้างาน">
-              <button class="listing-cover-arrow prev" id="reportCoverPrev" type="button" aria-label="รูปก่อนหน้า"><i class="fa-solid fa-chevron-left"></i></button>
-              <button class="listing-cover-arrow next" id="reportCoverNext" type="button" aria-label="รูปถัดไป"><i class="fa-solid fa-chevron-right"></i></button>
-              <span class="listing-cover-counter" id="reportCoverCounter">0/0</span>
-            </div>
-            <div class="report-gallery-strip" id="reportGalleryStrip"></div>
-          </div>
-
-          <!-- Project name -->
-          <h2 class="listing-title" id="reportDetailName">-</h2>
-
-          <!-- Contractor company name -->
-          <p class="listing-contractor"><i class="fa-solid fa-building"></i> <span id="reportDetailContractor">-</span></p>
-
-          <!-- Interactive location map -->
-          <div class="report-section">
-            <h3 class="report-section-title"><i class="fa-solid fa-map-location-dot"></i> ตำแหน่งที่ตั้งโครงการ</h3>
-            <div class="report-map" id="reportDetailMap"></div>
-          </div>
-
-          <!-- 8-checkpoint inspection photo albums -->
-          <div class="report-section">
-            <h3 class="report-section-title"><i class="fa-solid fa-list-check"></i> รูปตรวจมาตรฐาน 8 จุดสำคัญ</h3>
-            <div id="reportCheckpointAlbums"></div>
-          </div>
-
-          <!-- Full report details -->
-          <div class="report-section">
-            <h3 class="report-section-title"><i class="fa-solid fa-circle-info"></i> รายละเอียดรายงาน</h3>
-            <dl class="detail-list">
-              <dt>ถนน</dt><dd id="reportDetailRoad">-</dd>
-              <dt>GPS</dt><dd id="reportDetailGps">-</dd>
-              <dt>สถานะ</dt><dd id="reportDetailStatus">-</dd>
-              <dt>เริ่ม</dt><dd id="reportDetailStart">-</dd>
-              <dt>สิ้นสุด</dt><dd id="reportDetailEnd">-</dd>
-              <dt>หมายเหตุ</dt><dd id="reportDetailNote">-</dd>
-            </dl>
-          </div>
-        </div>
-      </section>
-
-      <!-- Fullscreen image lightbox (shared by gallery + checkpoint albums) -->
-      <div class="image-lightbox" id="imageLightbox" aria-hidden="true">
-        <button class="lightbox-close" id="lightboxClose" type="button" aria-label="ปิด"><i class="fa-solid fa-xmark"></i></button>
-        <button class="lightbox-arrow prev" id="lightboxPrev" type="button" aria-label="ก่อนหน้า"><i class="fa-solid fa-chevron-left"></i></button>
-        <img id="lightboxImg" alt="">
-        <button class="lightbox-arrow next" id="lightboxNext" type="button" aria-label="ถัดไป"><i class="fa-solid fa-chevron-right"></i></button>
-        <span class="lightbox-counter" id="lightboxCounter">0/0</span>
-      </div>
-
       <!-- Citizen report detail modal -->
       <section class="detail-modal" id="citizenDetailModal" aria-hidden="true">
         <div class="detail-panel">
@@ -171,8 +109,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       const el = document.getElementById(id);
       if (el) el.classList.remove('section-hidden');
       document.querySelectorAll('[data-section]').forEach((b) => b.classList.toggle('active', b.dataset.section === id));
-      // Leaving the tabs closes any open full-page detail view
-      document.getElementById('reportDetailPage')?.classList.remove('visible');
       if (id === 'sec-ai' && window.AdminModule) window.AdminModule.renderConstructionReports();
       if (id === 'sec-queue' && window.AdminModule) window.AdminModule.renderCitizenReports();
       if (id === 'sec-kpi' && window.AdminModule) window.AdminModule.renderCompanyList();

@@ -904,19 +904,23 @@ select:focus,
   color: var(--teal);
 }
 
-/* ─── Full-page detail view (Admin — replaces popup modal) ─── */
-.admin-page-view {
-  display: none;
-  position: absolute;
-  inset: 0;
-  z-index: 500;
+/* ─── Dedicated Admin construction report route ─── */
+.admin-report-page {
+  min-height: 100dvh;
+  max-width: none;
   background: var(--bg, #f4f6f5);
-  overflow-y: auto;
-  flex-direction: column;
 }
 
-.admin-page-view.visible {
-  display: flex;
+.admin-report-page .mobile-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.admin-report-main {
+  width: min(100%, 980px);
+  margin: 0 auto;
+  padding-bottom: max(36px, env(safe-area-inset-bottom));
 }
 
 .admin-page-header {
@@ -940,6 +944,84 @@ select:focus,
 
 .admin-page-body {
   padding: 16px;
+}
+
+.admin-report-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.report-detail-card {
+  padding: 16px;
+  border-radius: 16px;
+}
+
+.report-heading {
+  display: grid;
+  gap: 7px;
+}
+
+.report-heading .listing-title {
+  font-size: clamp(1.25rem, 3vw, 1.85rem);
+  margin: 0;
+}
+
+.report-heading-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.report-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #eef6f4;
+  color: var(--teal);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.checkpoint-albums-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.checkpoint-album-group {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.checkpoint-photo-button {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.report-not-found {
+  max-width: 620px;
+  margin: 64px auto;
+  text-align: center;
+}
+
+body.lightbox-open {
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .checkpoint-albums-grid { grid-template-columns: 1fr; }
+  .report-detail-card { padding: 13px; }
+  .admin-report-main { padding-inline: 12px; }
+  .admin-page-body { padding-inline: 0; }
 }
 
 /* Small cover thumbnail shown directly on each list card */

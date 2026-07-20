@@ -1,0 +1,197 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { rowToClient } from '../../../lib/project-mapper.js';
+import { supabase } from '../../../lib/supabase.js';
+
+export const prerender = false;
+
+const CHECKPOINT_META = [
+  { key: 'cone', num: 1, icon: 'fa-triangle-exclamation', label: 'กรวยจราจร' },
+  { key: 'warning_sign', num: 2, icon: 'fa-sign-hanging', label: 'ป้ายเตือน' },
+  { key: 'flashing_light', num: 3, icon: 'fa-lightbulb', label: 'ไฟเตือน' },
+  { key: 'barrier', num: 4, icon: 'fa-road-barrier', label: 'แผงกั้นเขตก่อสร้าง' },
+  { key: 'lane_marking', num: 5, icon: 'fa-road', label: 'เส้นแบ่งช่องทาง' },
+  { key: 'speed_limit_sign', num: 6, icon: 'fa-gauge-high', label: 'ป้ายจำกัดความเร็ว' },
+  { key: 'detour', num: 7, icon: 'fa-diamond-turn-right', label: 'ทางเบี่ยง' },
+  { key: 'construction_zone', num: 8, icon: 'fa-map-location-dot', label: 'เขตก่อสร้าง' },
+];
+
+type Project = Record<string, unknown> & {
+  id: number;
+  name?: string;
+  province?: string;
+  contractor?: string;
+  status?: string;
+  workLevel?: string;
+  roadName?: string;
+  lat?: number;
+  lng?: number;
+  boundaryMeters?: number;
+  start?: string;
+  end?: string;
+  workType?: string;
+  timestamp?: string;
+  statusNote?: string;
+  sitePhotos?: unknown;
+  checkpointPhotos?: Record<string, unknown>;
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  completed: 'เสร็จสิ้น',
+  'in-progress': 'กำลังดำเนินการ',
+  delayed: 'ล่าช้า',
+  planned: 'วางแผน',
+};
+const WORK_LEVEL_LABELS: Record<string, string> = {
+  critical: 'ระดับ 1 — วิกฤต', high: 'ระดับ 2 — สูง',
+  medium: 'ระดับ 3 — ปานกลาง', routine: 'ระดับ 4 — ทั่วไป',
+};
+const MOCK_COVER_PHOTO = 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=1200&q=75&auto=format&fit=crop';
+const isAllowedPhoto = (value: unknown): value is string => typeof value === 'string' && (/^data:image\//.test(value) || /^https:\/\//.test(value));
+const normalizePhotos = (value: unknown): string[] => Array.isArray(value) ? value.filter(isAllowedPhoto) : [];
+const formatDate = (value: unknown) => {
+  if (!value) return '-';
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
+};
+
+const idText = Astro.params.id || '';
+const projectId = Number(idText);
+const validId = /^\d+$/.test(idText) && Number.isSafeInteger(projectId) && projectId > 0;
+let project: Project | null = null;
+let loadError = '';
+if (validId) {
+  const { data, error } = await supabase.from('projects').select('*').eq('legacy_id', projectId).maybeSingle();
+  if (error) loadError = 'ไม่สามารถโหลดรายงานได้ในขณะนี้';
+  else if (data) project = rowToClient(data) as Project;
+}
+if (!project) Astro.response.status = loadError ? 500 : 404;
+
+const sitePhotos = normalizePhotos(project?.sitePhotos);
+const galleryPhotos = sitePhotos.length ? sitePhotos : [MOCK_COVER_PHOTO];
+const checkpointPhotos = Object.fromEntries(
+  CHECKPOINT_META.map(({ key }) => [key, normalizePhotos(project?.checkpointPhotos?.[key])])
+);
+const lat = Number(project?.lat);
+const lng = Number(project?.lng);
+const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+const statusKey = project?.status || '';
+const workLevelKey = project?.workLevel || '';
+const statusLabel = project ? (STATUS_LABELS[statusKey] || statusKey || '-') : '-';
+const workLevelLabel = project ? (WORK_LEVEL_LABELS[workLevelKey] || workLevelKey || '-') : '-';
+const reportData = project ? {
+  name: String(project.name || 'รายงานก่อสร้าง'),
+  lat: hasCoordinates ? lat : null,
+  lng: hasCoordinates ? lng : null,
+  boundaryMeters: Number(project.boundaryMeters) || null,
+  sitePhotos: galleryPhotos,
+  checkpointPhotos,
+} : null;
+---
+<BaseLayout title={project?.name || 'รายงานก่อสร้าง'} role="admin">
+  <div class="mobile-page admin-report-page">
+    <header class="mobile-header">
+      <a href="/admin" class="back-btn" aria-label="กลับไปรายงานก่อสร้าง"><i class="fa-solid fa-arrow-left"></i></a>
+      <div>
+        <h1>รายงานก่อสร้าง</h1>
+        <small>{project ? `รายงานเลขที่ ${project.id}` : 'ไม่พบรายงาน'}</small>
+      </div>
+      <button id="logoutBtn" type="button" class="back-btn" aria-label="ออกจากระบบ" style="margin-left:auto"><i class="fa-solid fa-right-from-bracket"></i></button>
+    </header>
+
+    {!project ? (
+      <main class="mobile-content admin-report-main">
+        <section class="card glass-panel report-not-found">
+          <i class={`fa-solid ${loadError ? 'fa-circle-exclamation' : 'fa-file-circle-question'}`} style="font-size:2.5rem;color:var(--amber)"></i>
+          <h2>{loadError || 'ไม่พบรายงานก่อสร้างนี้'}</h2>
+          <p>กรุณากลับไปเลือกรายงานจากหน้าผู้ดูแลระบบอีกครั้ง</p>
+          <a href="/admin" class="big-action" style="display:inline-flex;width:auto;text-decoration:none">กลับหน้ารายงาน</a>
+        </section>
+      </main>
+    ) : (
+      <main class="mobile-content admin-report-main">
+        <article class="admin-page-body report-detail-grid">
+          <section class="report-section report-detail-card glass-panel" aria-labelledby="site-gallery-title">
+            <h2 class="report-section-title" id="site-gallery-title"><i class="fa-solid fa-camera"></i> รูปถ่ายหน้างาน</h2>
+            <div class="listing-cover" id="adminReportCover">
+              <span class="listing-badge"><i class="fa-solid fa-helmet-safety"></i> {statusLabel}</span>
+              <img class="listing-cover-img" id="adminReportCoverImg" src={galleryPhotos[0]} alt={`รูปหน้างาน ${project.name}`}>
+              <button class="listing-cover-arrow prev" id="adminReportCoverPrev" type="button" aria-label="รูปก่อนหน้า" hidden={galleryPhotos.length <= 1}><i class="fa-solid fa-chevron-left"></i></button>
+              <button class="listing-cover-arrow next" id="adminReportCoverNext" type="button" aria-label="รูปถัดไป" hidden={galleryPhotos.length <= 1}><i class="fa-solid fa-chevron-right"></i></button>
+              <span class="listing-cover-counter" id="adminReportCoverCounter">1/{galleryPhotos.length}</span>
+            </div>
+            {sitePhotos.length === 0 && <p class="checkpoint-album-empty">ยังไม่มีรูปหน้างาน — แสดงภาพตัวอย่างแทน</p>}
+            {galleryPhotos.length > 1 && (
+              <div class="report-gallery-strip" id="adminReportGalleryStrip" aria-label="รูปถ่ายหน้างานทั้งหมด">
+                {galleryPhotos.map((src, index) => <button class="checkpoint-photo-button" type="button" data-cover-index={index} aria-label={`ดูรูปที่ ${index + 1}`}><img class:list={{ active: index === 0 }} src={src} alt={`รูปหน้างาน ${index + 1}`} loading="lazy"></button>)}
+              </div>
+            )}
+          </section>
+
+          <section class="report-heading">
+            <div class="report-heading-meta">
+              <span class="report-meta-chip"><i class="fa-solid fa-layer-group"></i> {workLevelLabel}</span>
+              <span class="report-meta-chip"><i class="fa-solid fa-location-dot"></i> {project.province || 'ไม่ระบุจังหวัด'}</span>
+            </div>
+            <h2 class="listing-title">{project.name || '-'}</h2>
+            <p class="listing-contractor"><i class="fa-solid fa-building"></i> {project.contractor || '-'}</p>
+          </section>
+
+          <section class="report-section report-detail-card glass-panel">
+            <h2 class="report-section-title"><i class="fa-solid fa-map-location-dot"></i> ตำแหน่งที่ตั้งโครงการ</h2>
+            {hasCoordinates ? <div class="report-map" id="adminReportMap" aria-label="แผนที่ตำแหน่งโครงการ"></div> : <div class="empty-state">ไม่มีข้อมูลตำแหน่ง GPS</div>}
+          </section>
+
+          <section class="report-section report-detail-card glass-panel">
+            <h2 class="report-section-title"><i class="fa-solid fa-list-check"></i> รูปตรวจมาตรฐาน 8 จุดสำคัญ</h2>
+            <div class="checkpoint-albums-grid">
+              {CHECKPOINT_META.map((meta) => {
+                const photos = checkpointPhotos[meta.key];
+                return <section class="checkpoint-album-group">
+                  <h3 class="checkpoint-album-title"><span class="checkpoint-num">{meta.num}</span><i class={`fa-solid ${meta.icon}`}></i> {meta.label}</h3>
+                  {photos.length ? (
+                    <div class="checkpoint-album-strip" data-checkpoint-album={meta.key} aria-label={`อัลบั้ม${meta.label}`}>
+                      {photos.map((src, index) => <button class="checkpoint-photo-button" type="button" data-checkpoint-index={index} aria-label={`ขยายรูป ${meta.label} รูปที่ ${index + 1}`}><img src={src} alt={`${meta.label} รูปที่ ${index + 1}`} loading="lazy"></button>)}
+                    </div>
+                  ) : <div class="checkpoint-album-empty">ไม่มีรูปแนบ</div>}
+                </section>;
+              })}
+            </div>
+          </section>
+
+          <section class="report-section report-detail-card glass-panel">
+            <h2 class="report-section-title"><i class="fa-solid fa-circle-info"></i> รายละเอียดรายงาน</h2>
+            <dl class="detail-list report-detail-list">
+              <dt>ชื่องาน</dt><dd>{project.name || '-'}</dd>
+              <dt>บริษัท</dt><dd>{project.contractor || '-'}</dd>
+              <dt>ประเภทงาน</dt><dd>{project.workType || '-'}</dd>
+              <dt>ระดับงาน</dt><dd>{workLevelLabel}</dd>
+              <dt>จังหวัด</dt><dd>{project.province || '-'}</dd>
+              <dt>ถนน</dt><dd>{project.roadName || '-'}</dd>
+              <dt>GPS</dt><dd>{hasCoordinates ? `${lat.toFixed(6)}, ${lng.toFixed(6)}` : '-'}</dd>
+              <dt>ขอบเขต</dt><dd>{project.boundaryMeters ? `${project.boundaryMeters} เมตร` : '-'}</dd>
+              <dt>สถานะ</dt><dd>{statusLabel}</dd>
+              <dt>เริ่มงาน</dt><dd>{formatDate(project.start)}</dd>
+              <dt>สิ้นสุด</dt><dd>{formatDate(project.end)}</dd>
+              <dt>เวลารายงาน</dt><dd>{formatDate(project.timestamp)}</dd>
+              <dt>หมายเหตุ</dt><dd>{project.statusNote || '-'}</dd>
+            </dl>
+          </section>
+        </article>
+      </main>
+    )}
+  </div>
+
+  {project && (
+    <div class="image-lightbox" id="adminReportLightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="ดูรูปแบบเต็มจอ">
+      <button class="lightbox-close" id="adminReportLightboxClose" type="button" aria-label="ปิด"><i class="fa-solid fa-xmark"></i></button>
+      <button class="lightbox-arrow prev" id="adminReportLightboxPrev" type="button" aria-label="รูปก่อนหน้า"><i class="fa-solid fa-chevron-left"></i></button>
+      <img id="adminReportLightboxImg" alt="รูปแบบเต็มจอ">
+      <button class="lightbox-arrow next" id="adminReportLightboxNext" type="button" aria-label="รูปถัดไป"><i class="fa-solid fa-chevron-right"></i></button>
+      <span class="lightbox-counter" id="adminReportLightboxCounter">1/1</span>
+    </div>
+  )}
+
+  {project && <script is:inline define:vars={{ reportData }}>window.ADMIN_REPORT_DATA = reportData;</script>}
+  {project && <script src="/js/admin-report.js" is:inline></script>}
+</BaseLayout>

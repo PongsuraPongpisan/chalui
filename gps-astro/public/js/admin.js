@@ -63,22 +63,19 @@ function renderConstructionReportListOnly() {
   }
 
   container.innerHTML = list.map((p) => {
-    const cover = collectProjectPhotos(p)[0] || MOCK_COVER_PHOTO;
+    const cover = Array.isArray(p.sitePhotos) && p.sitePhotos[0] ? p.sitePhotos[0] : MOCK_COVER_PHOTO;
+    const reportId = encodeURIComponent(String(p.id));
     return `
-    <div class="admin-queue-card" data-report-id="${p.id}" role="button" tabindex="0">
+    <a class="admin-queue-card admin-report-link" href="/admin/reports/${reportId}">
       <img class="report-card-thumb" src="${cover}" alt="รูปหน้างาน">
       <div class="queue-info">
         <strong>${p.name}</strong>
         <span>${p.roadName || ''} — ${p.contractor}</span>
         <span>สถานะ: ${statusLabelOf(p.status)}</span>
       </div>
-    </div>
+    </a>
   `;
   }).join('');
-
-  container.querySelectorAll('[data-report-id]').forEach((card) => {
-    card.addEventListener('click', () => openConstructionReportDetail(parseInt(card.dataset.reportId)));
-  });
 }
 
 function renderConstructionReports() {
@@ -91,237 +88,10 @@ function statusLabelOf(status) {
   return map[status] || status;
 }
 
-function collectProjectPhotos(project) {
-  // Site-overview photos first (contractor's "ภาพหน้างาน" section) — the
-  // first one uploaded there is the cover photo, matching the listing-card
-  // convention (first photo = cover). Checkpoint photos come after.
-  const photos = [];
-  if (Array.isArray(project.sitePhotos)) photos.push(...project.sitePhotos);
-  if (project.checkpointPhotos && typeof project.checkpointPhotos === 'object') {
-    Object.values(project.checkpointPhotos).forEach((arr) => {
-      if (Array.isArray(arr)) photos.push(...arr);
-    });
-  }
-  return photos;
-}
-
 // Mockup fallback cover photo — used only when a project has no real photos attached.
 const MOCK_COVER_PHOTO = 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&q=60&auto=format&fit=crop';
 
-// Labels/icons for the 8 inspection checkpoints (mirrors contractor.astro)
-const CHECKPOINT_META = [
-  { key: 'cone', num: 1, icon: 'fa-triangle-exclamation', label: 'กรวยจราจร' },
-  { key: 'warning_sign', num: 2, icon: 'fa-sign-hanging', label: 'ป้ายเตือน' },
-  { key: 'flashing_light', num: 3, icon: 'fa-lightbulb', label: 'ไฟเตือน' },
-  { key: 'barrier', num: 4, icon: 'fa-road-barrier', label: 'แผงกั้นเขตก่อสร้าง' },
-  { key: 'lane_marking', num: 5, icon: 'fa-road', label: 'เส้นแบ่งช่องทาง' },
-  { key: 'speed_limit_sign', num: 6, icon: 'fa-gauge-high', label: 'ป้ายจำกัดความเร็ว' },
-  { key: 'detour', num: 7, icon: 'fa-diamond-turn-right', label: 'ทางเบี่ยง' },
-  { key: 'construction_zone', num: 8, icon: 'fa-map-location-dot', label: 'เขตก่อสร้าง' },
-];
-
-let reportCoverPhotos = [];
-let reportCoverIndex = 0;
-let reportDetailMap = null;
-
-function renderReportCover() {
-  const img = document.getElementById('reportCoverImg');
-  const counter = document.getElementById('reportCoverCounter');
-  const prevBtn = document.getElementById('reportCoverPrev');
-  const nextBtn = document.getElementById('reportCoverNext');
-  if (!img || !counter) return;
-
-  const total = reportCoverPhotos.length;
-  img.src = total ? reportCoverPhotos[reportCoverIndex] : MOCK_COVER_PHOTO;
-  counter.textContent = total ? `${reportCoverIndex + 1}/${total}` : '1/1';
-  if (prevBtn) prevBtn.style.display = total > 1 ? 'flex' : 'none';
-  if (nextBtn) nextBtn.style.display = total > 1 ? 'flex' : 'none';
-
-  // Highlight the matching thumb in the strip below
-  document.querySelectorAll('#reportGalleryStrip img').forEach((thumb, i) => {
-    thumb.classList.toggle('active', i === reportCoverIndex);
-  });
-}
-
-function renderReportGalleryStrip() {
-  const strip = document.getElementById('reportGalleryStrip');
-  if (!strip) return;
-  if (reportCoverPhotos.length <= 1) { strip.innerHTML = ''; return; }
-  strip.innerHTML = reportCoverPhotos.map((src, i) =>
-    `<img src="${src}" alt="รูปที่ ${i + 1}" data-index="${i}">`
-  ).join('');
-  strip.querySelectorAll('img').forEach((thumb) => {
-    thumb.addEventListener('click', () => {
-      reportCoverIndex = Number(thumb.dataset.index);
-      renderReportCover();
-    });
-  });
-}
-
-document.getElementById('reportCoverNext')?.addEventListener('click', () => {
-  if (reportCoverPhotos.length === 0) return;
-  reportCoverIndex = (reportCoverIndex + 1) % reportCoverPhotos.length;
-  renderReportCover();
-});
-
-document.getElementById('reportCoverPrev')?.addEventListener('click', () => {
-  if (reportCoverPhotos.length === 0) return;
-  reportCoverIndex = (reportCoverIndex - 1 + reportCoverPhotos.length) % reportCoverPhotos.length;
-  renderReportCover();
-});
-
-// Clicking the big cover image opens the fullscreen lightbox on the same set
-document.getElementById('reportCoverImg')?.addEventListener('click', () => {
-  const photos = reportCoverPhotos.length ? reportCoverPhotos : [MOCK_COVER_PHOTO];
-  openLightbox(photos, reportCoverIndex);
-});
-
-function renderReportCheckpointAlbums(project) {
-  const host = document.getElementById('reportCheckpointAlbums');
-  if (!host) return;
-  const cp = project.checkpointPhotos || {};
-
-  host.innerHTML = CHECKPOINT_META.map((meta) => {
-    const photos = Array.isArray(cp[meta.key]) ? cp[meta.key] : [];
-    const strip = photos.length
-      ? `<div class="checkpoint-album-strip" data-checkpoint-strip="${meta.key}">
-           ${photos.map((src, i) => `<img src="${src}" alt="${meta.label}" data-index="${i}">`).join('')}
-         </div>`
-      : `<div class="checkpoint-album-empty">ไม่มีรูปแนบ</div>`;
-    return `
-      <div class="checkpoint-album-group">
-        <div class="checkpoint-album-title"><span class="checkpoint-num">${meta.num}</span><i class="fa-solid ${meta.icon}"></i> ${meta.label}</div>
-        ${strip}
-      </div>
-    `;
-  }).join('');
-
-  // Bind lightbox open for each checkpoint's own photo set (swipeable within that point)
-  CHECKPOINT_META.forEach((meta) => {
-    const photos = Array.isArray(cp[meta.key]) ? cp[meta.key] : [];
-    if (!photos.length) return;
-    const strip = host.querySelector(`[data-checkpoint-strip="${meta.key}"]`);
-    strip?.querySelectorAll('img').forEach((img) => {
-      img.addEventListener('click', () => openLightbox(photos, Number(img.dataset.index)));
-    });
-  });
-}
-
-function renderReportLocationMap(project) {
-  const el = document.getElementById('reportDetailMap');
-  if (!el || typeof L === 'undefined') return;
-
-  // Destroy any previous map instance before re-initializing (page reused across reports)
-  if (reportDetailMap) {
-    reportDetailMap.remove();
-    reportDetailMap = null;
-  }
-
-  const lat = project.lat;
-  const lng = project.lng;
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    el.innerHTML = '<div class="empty-state">ไม่มีข้อมูลตำแหน่ง GPS</div>';
-    return;
-  }
-
-  reportDetailMap = L.map(el, { scrollWheelZoom: true }).setView([lat, lng], 15);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-  }).addTo(reportDetailMap);
-  L.marker([lat, lng]).addTo(reportDetailMap).bindPopup(project.name);
-
-  // Leaflet needs a resize kick when its container becomes visible after being hidden
-  setTimeout(() => reportDetailMap && reportDetailMap.invalidateSize(), 150);
-}
-
-function openConstructionReportDetail(projectId) {
-  const project = typeof projects !== 'undefined' ? projects.find((p) => p.id === projectId) : null;
-  if (!project) return;
-
-  document.getElementById('reportDetailName').textContent = project.name;
-  document.getElementById('reportDetailContractor').textContent = project.contractor || '-';
-  document.getElementById('reportDetailRoad').textContent = project.roadName || '-';
-  document.getElementById('reportDetailGps').textContent = `${project.lat.toFixed(6)}, ${project.lng.toFixed(6)}`;
-  document.getElementById('reportDetailStatus').textContent = statusLabelOf(project.status);
-  document.getElementById('reportDetailStart').textContent = project.start ? new Date(project.start).toLocaleString('th-TH') : '-';
-  document.getElementById('reportDetailEnd').textContent = project.end ? new Date(project.end).toLocaleString('th-TH') : '-';
-  document.getElementById('reportDetailNote').textContent = project.statusNote || '-';
-
-  const badge = document.getElementById('reportCoverBadge');
-  if (badge) badge.innerHTML = `<i class="fa-solid fa-helmet-safety"></i> ${statusLabelOf(project.status)}`;
-
-  // Cover gallery: site-overview photos only (checkpoint photos have their own albums below)
-  reportCoverPhotos = Array.isArray(project.sitePhotos) ? project.sitePhotos : [];
-  reportCoverIndex = 0;
-  renderReportCover();
-  renderReportGalleryStrip();
-
-  renderReportCheckpointAlbums(project);
-
-  // Full-page view (not a popup) — navigates into the report like its own page
-  const page = document.getElementById('reportDetailPage');
-  page.classList.add('visible');
-  page.setAttribute('aria-hidden', 'false');
-  page.scrollTop = 0;
-
-  // Map needs the container visible before init, so do it after showing the page
-  renderReportLocationMap(project);
-}
-
-document.getElementById('closeReportDetail')?.addEventListener('click', () => {
-  const page = document.getElementById('reportDetailPage');
-  page.classList.remove('visible');
-  page.setAttribute('aria-hidden', 'true');
-});
-
-// ─── Fullscreen image lightbox (shared by cover gallery + checkpoint albums) ───
-
-let lightboxPhotos = [];
-let lightboxIndex = 0;
-
-function openLightbox(photos, startIndex) {
-  lightboxPhotos = photos;
-  lightboxIndex = startIndex || 0;
-  renderLightbox();
-  const box = document.getElementById('imageLightbox');
-  box.classList.add('visible');
-  box.setAttribute('aria-hidden', 'false');
-}
-
-function renderLightbox() {
-  const img = document.getElementById('lightboxImg');
-  const counter = document.getElementById('lightboxCounter');
-  if (!img || !counter) return;
-  img.src = lightboxPhotos[lightboxIndex];
-  counter.textContent = `${lightboxIndex + 1}/${lightboxPhotos.length}`;
-}
-
-function closeLightbox() {
-  const box = document.getElementById('imageLightbox');
-  box.classList.remove('visible');
-  box.setAttribute('aria-hidden', 'true');
-}
-
-document.getElementById('lightboxClose')?.addEventListener('click', closeLightbox);
-document.getElementById('imageLightbox')?.addEventListener('click', (e) => {
-  if (e.target.id === 'imageLightbox') closeLightbox();
-});
-document.getElementById('lightboxNext')?.addEventListener('click', () => {
-  lightboxIndex = (lightboxIndex + 1) % lightboxPhotos.length;
-  renderLightbox();
-});
-document.getElementById('lightboxPrev')?.addEventListener('click', () => {
-  lightboxIndex = (lightboxIndex - 1 + lightboxPhotos.length) % lightboxPhotos.length;
-  renderLightbox();
-});
-document.addEventListener('keydown', (e) => {
-  const box = document.getElementById('imageLightbox');
-  if (!box || !box.classList.contains('visible')) return;
-  if (e.key === 'Escape') closeLightbox();
-  if (e.key === 'ArrowRight') document.getElementById('lightboxNext')?.click();
-  if (e.key === 'ArrowLeft') document.getElementById('lightboxPrev')?.click();
-});
+// Construction report interaction now lives on /admin/reports/:id.
 
 // ─── Section 2: Citizen Reports (feedback + reports panel submissions) ───
 

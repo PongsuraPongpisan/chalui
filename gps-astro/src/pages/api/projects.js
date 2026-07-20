@@ -1,74 +1,7 @@
 import { supabase } from "../../lib/supabase.js";
+import { clientToRow, rowToClient } from "../../lib/project-mapper.js";
 
 export const prerender = false;
-
-// Columns that map 1:1 (snake_case DB -> camelCase client) with a simple rename.
-// Anything the client sends that isn't in this list gets stored in the
-// `extra` jsonb column instead of growing the schema for every UI field.
-const COLUMN_MAP = {
-  name: "name",
-  province: "province",
-  contractor: "contractor",
-  status: "status",
-  workLevel: "work_level",
-  roadName: "road_name",
-  lat: "lat",
-  lng: "lng",
-  radiusKm: "radius_km",
-  boundaryMeters: "boundary_meters",
-  start: "start_date",
-  end: "end_date",
-  aiVerdict: "ai_verdict",
-  aiConfidence: "ai_confidence",
-  aiScore: "ai_score",
-  complianceVerdict: "compliance_verdict",
-  complianceScore: "compliance_score",
-  complianceReportId: "compliance_report_id",
-  adminDecision: "admin_decision",
-  verified: "verified",
-  aiWasWrong: "ai_was_wrong",
-  publishedToDrivers: "published_to_drivers",
-  isDangerous: "is_dangerous",
-  needsDohInspection: "needs_doh_inspection",
-  needsReaudit: "needs_reaudit",
-  rejectReason: "reject_reason",
-  overrideReason: "override_reason",
-  lastAuditAt: "last_audit_at",
-  validatedBy: "validated_by",
-  validatedAt: "validated_at",
-};
-
-const REVERSE_MAP = Object.fromEntries(
-  Object.entries(COLUMN_MAP).map(([clientKey, dbKey]) => [dbKey, clientKey])
-);
-
-// Fields the client sends that don't have a dedicated column (workType,
-// timestamp, photoTheme, photoColors, statusNote, ...) get folded into `extra`.
-function rowToClient(row) {
-  const client = { id: row.legacy_id };
-  for (const [dbKey, clientKey] of Object.entries(REVERSE_MAP)) {
-    if (row[dbKey] !== undefined) client[clientKey] = row[dbKey];
-  }
-  if (row.extra && typeof row.extra === "object") {
-    Object.assign(client, row.extra);
-  }
-  return client;
-}
-
-function clientToRow(project) {
-  const row = {};
-  const extra = {};
-  for (const [clientKey, value] of Object.entries(project)) {
-    if (clientKey === "id") continue;
-    if (COLUMN_MAP[clientKey]) {
-      row[COLUMN_MAP[clientKey]] = value;
-    } else {
-      extra[clientKey] = value;
-    }
-  }
-  if (Object.keys(extra).length > 0) row.extra = extra;
-  return row;
-}
 
 export async function GET() {
   const { data, error } = await supabase
