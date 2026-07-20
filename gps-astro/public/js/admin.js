@@ -88,6 +88,9 @@ function statusLabelOf(status) {
 }
 
 function collectProjectPhotos(project) {
+  // Site-overview photos first (contractor's "ภาพหน้างาน" section) — the
+  // first one uploaded there is the cover photo, matching the listing-card
+  // convention (first photo = cover). Checkpoint photos come after.
   const photos = [];
   if (Array.isArray(project.sitePhotos)) photos.push(...project.sitePhotos);
   if (project.checkpointPhotos && typeof project.checkpointPhotos === 'object') {
@@ -97,6 +100,30 @@ function collectProjectPhotos(project) {
   }
   return photos;
 }
+
+// Mockup fallback cover photo — used only when a project has no real photos attached.
+const MOCK_COVER_PHOTO = 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&q=60&auto=format&fit=crop';
+
+let reportCoverPhotos = [];
+let reportCoverIndex = 0;
+
+function renderReportCover() {
+  const img = document.getElementById('reportCoverImg');
+  const counter = document.getElementById('reportCoverCounter');
+  const arrow = document.getElementById('reportCoverNext');
+  if (!img || !counter) return;
+
+  const total = reportCoverPhotos.length;
+  img.src = total ? reportCoverPhotos[reportCoverIndex] : MOCK_COVER_PHOTO;
+  counter.textContent = total ? `${reportCoverIndex + 1}/${total}` : '1/1';
+  if (arrow) arrow.style.display = total > 1 ? 'flex' : 'none';
+}
+
+document.getElementById('reportCoverNext')?.addEventListener('click', () => {
+  if (reportCoverPhotos.length === 0) return;
+  reportCoverIndex = (reportCoverIndex + 1) % reportCoverPhotos.length;
+  renderReportCover();
+});
 
 function openConstructionReportDetail(projectId) {
   const project = typeof projects !== 'undefined' ? projects.find((p) => p.id === projectId) : null;
@@ -111,11 +138,12 @@ function openConstructionReportDetail(projectId) {
   document.getElementById('reportDetailEnd').textContent = project.end ? new Date(project.end).toLocaleString('th-TH') : '-';
   document.getElementById('reportDetailNote').textContent = project.statusNote || '-';
 
-  const photos = collectProjectPhotos(project);
-  const photoHost = document.getElementById('reportDetailPhotos');
-  photoHost.innerHTML = photos.length
-    ? photos.map((src) => `<img class="detail-photo" src="${src}" alt="รูปหน้างาน">`).join('')
-    : '<div class="empty-state" style="padding:12px">ไม่มีรูปแนบ</div>';
+  const badge = document.getElementById('reportCoverBadge');
+  if (badge) badge.innerHTML = `<i class="fa-solid fa-helmet-safety"></i> ${statusLabelOf(project.status)}`;
+
+  reportCoverPhotos = collectProjectPhotos(project);
+  reportCoverIndex = 0;
+  renderReportCover();
 
   const modal = document.getElementById('reportDetailModal');
   modal.classList.add('visible');
