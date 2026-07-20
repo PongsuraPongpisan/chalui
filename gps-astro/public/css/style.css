@@ -904,6 +904,55 @@ select:focus,
   color: var(--teal);
 }
 
+/* ─── Full-page detail view (Admin — replaces popup modal) ─── */
+.admin-page-view {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  background: var(--bg, #f4f6f5);
+  overflow-y: auto;
+  flex-direction: column;
+}
+
+.admin-page-view.visible {
+  display: flex;
+}
+
+.admin-page-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.admin-page-header .eyebrow {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.admin-page-body {
+  padding: 16px;
+}
+
+/* Small cover thumbnail shown directly on each list card */
+.report-card-thumb {
+  width: 100%;
+  height: 140px;
+  border-radius: 10px;
+  object-fit: cover;
+  margin-bottom: 8px;
+  background: #e5e7eb;
+  display: block;
+}
+
 /* ─── Listing-card style detail (Admin construction report) ─── */
 .listing-cover {
   position: relative;

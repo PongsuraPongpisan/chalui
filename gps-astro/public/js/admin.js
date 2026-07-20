@@ -62,15 +62,19 @@ function renderConstructionReportListOnly() {
     return;
   }
 
-  container.innerHTML = list.map((p) => `
+  container.innerHTML = list.map((p) => {
+    const cover = collectProjectPhotos(p)[0] || MOCK_COVER_PHOTO;
+    return `
     <div class="admin-queue-card" data-report-id="${p.id}" role="button" tabindex="0">
+      <img class="report-card-thumb" src="${cover}" alt="รูปหน้างาน">
       <div class="queue-info">
         <strong>${p.name}</strong>
         <span>${p.roadName || ''} — ${p.contractor}</span>
         <span>สถานะ: ${statusLabelOf(p.status)}</span>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   container.querySelectorAll('[data-report-id]').forEach((card) => {
     card.addEventListener('click', () => openConstructionReportDetail(parseInt(card.dataset.reportId)));
@@ -145,15 +149,17 @@ function openConstructionReportDetail(projectId) {
   reportCoverIndex = 0;
   renderReportCover();
 
-  const modal = document.getElementById('reportDetailModal');
-  modal.classList.add('visible');
-  modal.setAttribute('aria-hidden', 'false');
+  // Full-page view (not a popup) — navigates into the report like its own page
+  const page = document.getElementById('reportDetailPage');
+  page.classList.add('visible');
+  page.setAttribute('aria-hidden', 'false');
+  page.scrollTop = 0;
 }
 
 document.getElementById('closeReportDetail')?.addEventListener('click', () => {
-  const modal = document.getElementById('reportDetailModal');
-  modal.classList.remove('visible');
-  modal.setAttribute('aria-hidden', 'true');
+  const page = document.getElementById('reportDetailPage');
+  page.classList.remove('visible');
+  page.setAttribute('aria-hidden', 'true');
 });
 
 // ─── Section 2: Citizen Reports (feedback + reports panel submissions) ───

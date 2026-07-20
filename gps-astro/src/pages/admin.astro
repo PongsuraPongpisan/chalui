@@ -55,31 +55,29 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-      <!-- Construction report detail modal (listing-card style) -->
-      <section class="detail-modal" id="reportDetailModal" aria-hidden="true">
-        <div class="detail-panel">
-          <header class="detail-header">
-            <div><p class="eyebrow">รายงานก่อสร้าง</p></div>
-            <button class="panel-toggle" id="closeReportDetail" type="button">X</button>
-          </header>
-          <div class="detail-body">
-            <div class="listing-cover" id="reportCoverWrap">
-              <span class="listing-badge" id="reportCoverBadge">-</span>
-              <img class="listing-cover-img" id="reportCoverImg" alt="รูปหน้างาน">
-              <button class="listing-cover-arrow" id="reportCoverNext" type="button" aria-label="รูปถัดไป"><i class="fa-solid fa-chevron-right"></i></button>
-              <span class="listing-cover-counter" id="reportCoverCounter">0/0</span>
-            </div>
-            <h2 class="listing-title" id="reportDetailName">-</h2>
-            <p class="listing-location"><i class="fa-solid fa-location-dot"></i> <span id="reportDetailRoad">-</span></p>
-            <dl class="detail-list">
-              <dt>ผู้รับเหมา</dt><dd id="reportDetailContractor">-</dd>
-              <dt>GPS</dt><dd id="reportDetailGps">-</dd>
-              <dt>สถานะ</dt><dd id="reportDetailStatus">-</dd>
-              <dt>เริ่ม</dt><dd id="reportDetailStart">-</dd>
-              <dt>สิ้นสุด</dt><dd id="reportDetailEnd">-</dd>
-              <dt>หมายเหตุ</dt><dd id="reportDetailNote">-</dd>
-            </dl>
+      <!-- Construction report detail — full page view (not a popup) -->
+      <section class="admin-page-view" id="reportDetailPage" aria-hidden="true">
+        <header class="admin-page-header">
+          <button class="back-btn" id="closeReportDetail" type="button" aria-label="กลับ"><i class="fa-solid fa-arrow-left"></i></button>
+          <p class="eyebrow">รายงานก่อสร้าง</p>
+        </header>
+        <div class="admin-page-body">
+          <div class="listing-cover" id="reportCoverWrap">
+            <span class="listing-badge" id="reportCoverBadge">-</span>
+            <img class="listing-cover-img" id="reportCoverImg" alt="รูปหน้างาน">
+            <button class="listing-cover-arrow" id="reportCoverNext" type="button" aria-label="รูปถัดไป"><i class="fa-solid fa-chevron-right"></i></button>
+            <span class="listing-cover-counter" id="reportCoverCounter">0/0</span>
           </div>
+          <h2 class="listing-title" id="reportDetailName">-</h2>
+          <p class="listing-location"><i class="fa-solid fa-location-dot"></i> <span id="reportDetailRoad">-</span></p>
+          <dl class="detail-list">
+            <dt>ผู้รับเหมา</dt><dd id="reportDetailContractor">-</dd>
+            <dt>GPS</dt><dd id="reportDetailGps">-</dd>
+            <dt>สถานะ</dt><dd id="reportDetailStatus">-</dd>
+            <dt>เริ่ม</dt><dd id="reportDetailStart">-</dd>
+            <dt>สิ้นสุด</dt><dd id="reportDetailEnd">-</dd>
+            <dt>หมายเหตุ</dt><dd id="reportDetailNote">-</dd>
+          </dl>
         </div>
       </section>
 
@@ -137,6 +135,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       const el = document.getElementById(id);
       if (el) el.classList.remove('section-hidden');
       document.querySelectorAll('[data-section]').forEach((b) => b.classList.toggle('active', b.dataset.section === id));
+      // Leaving the tabs closes any open full-page detail view
+      document.getElementById('reportDetailPage')?.classList.remove('visible');
       if (id === 'sec-ai' && window.AdminModule) window.AdminModule.renderConstructionReports();
       if (id === 'sec-queue' && window.AdminModule) window.AdminModule.renderCitizenReports();
       if (id === 'sec-kpi' && window.AdminModule) window.AdminModule.renderCompanyList();
