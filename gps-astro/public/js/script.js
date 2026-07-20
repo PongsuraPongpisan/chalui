@@ -2159,8 +2159,8 @@ function showPanelUnified(name) {
     }
   } else if (name === "admin") {
     if (adminPanel) adminPanel.setAttribute("aria-hidden", "false");
-    if (window.AdminModule && window.AdminModule.renderAdminQueue) {
-      window.AdminModule.renderAdminQueue();
+    if (window.AdminModule && window.AdminModule.renderConstructionReports) {
+      window.AdminModule.renderConstructionReports();
     }
   } else if (name === "alerts") {
     openAlertsPanel();

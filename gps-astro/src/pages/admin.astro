@@ -14,165 +14,126 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     <div class="mobile-content">
       <div class="segment-tabs">
-        <button class="active" data-section="sec-ai" type="button">🧠 AI ตรวจ</button>
-        <button data-section="sec-queue" type="button">✅ อนุมัติ</button>
-        <button data-section="sec-kpi" type="button">📊 KPI</button>
+        <button class="active" data-section="sec-ai" type="button">🏗️ รายงานก่อสร้าง</button>
+        <button data-section="sec-queue" type="button">💬 รายงานประชาชน</button>
+        <button data-section="sec-kpi" type="button">🏢 บริษัท</button>
       </div>
 
-      <!-- AI Auditor section -->
+      <!-- Construction Reports section -->
       <section id="sec-ai">
-        <!-- Work level overview (ระดับงาน) -->
-        <div class="card glass-panel" style="border-left: 4px solid var(--amber);">
-          <h3 style="color: var(--amber);"><i class="fa-solid fa-layer-group"></i> ระดับงานก่อสร้างในระบบ</h3>
-          <p style="font-size:0.8rem;color:#68746f;margin:-4px 0 12px">จัดระดับตามความเสี่ยง/ผลกระทบจราจร — ยิ่งระดับสูง ยิ่งตรวจเข้ม (แตะการ์ดเพื่อเลือกงานระดับนั้น)</p>
-          <div id="workLevelOverview" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px"></div>
-        </div>
-
         <div class="card glass-panel" style="border-left: 4px solid var(--teal);">
-          <h3 style="color: var(--teal);"><i class="fa-solid fa-magnifying-glass-chart"></i> ตรวจสอบมาตรฐานหน้างาน</h3>
-          <div class="card-grid">
-            <label><span>โครงการที่จะตรวจ</span><select id="aiZoneSelect"></select></label>
-            <div id="aiZoneLevelBadge" style="margin-top:6px"></div>
-            <div class="contractor-photo-display">
-              <span style="font-size:0.82rem;color:#68746f;display:block;margin-bottom:8px">📷 รูปจากผู้รับเหมา</span>
-              <div class="photo-from-contractor" id="aiUploadArea" style="padding:16px;background:#f0fdf4;border:2px dashed var(--teal);border-radius:12px;text-align:center;min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
-                <i class="fa-solid fa-image fa-2x" style="color:var(--teal)"></i>
-                <span style="font-size:0.8rem;color:#68746f">รูปที่ผู้รับเหมาส่งมาจะแสดงที่นี่</span>
-                <img class="ai-preview" id="aiPreview" alt="Preview" hidden style="max-height:160px;border-radius:8px;width:100%;object-fit:cover">
-              </div>
-              <input id="aiImageUpload" class="visually-hidden" type="file" accept="image/*">
-            </div>
-            <label><span>Scenario จำลอง (POC)</span>
-              <select id="aiScenario">
-                <option value="pass">✅ ผ่านมาตรฐาน</option>
-                <option value="fail">❌ ไม่ผ่าน</option>
-                <option value="critical">🔴 ไม่ผ่านร้ายแรง</option>
-              </select>
-            </label>
-          </div>
-          <button class="big-action teal hover-scale" id="runAiAudit" type="button" style="margin-top:12px; background: var(--teal); color: #fff; border: none; box-shadow: var(--shadow-md);"><i class="fa-solid fa-magnifying-glass-chart"></i> ตรวจสอบมาตรฐาน</button>
-        </div>
-
-        <div class="ai-loading" id="aiLoading" hidden><div class="spinner"></div><p>กำลังวิเคราะห์...</p></div>
-
-        <div class="ai-results card glass-panel" id="aiResults" hidden style="border-top: 4px solid var(--teal);">
-          <div class="ai-verdict" id="aiVerdict"></div>
-          <div class="ai-score-gauge" id="aiScoreGauge"></div>
-          <div class="ai-detected" id="aiDetected"></div>
-          <div class="ai-rules" id="aiRules"></div>
-          <div class="ai-recommendations" id="aiRecommendations"></div>
-          <div class="ai-hash" id="aiHash"></div>
+          <h3 style="color: var(--teal);"><i class="fa-solid fa-helmet-safety"></i> รายงานก่อสร้างทั้งหมด</h3>
+          <p style="font-size:0.8rem;color:#68746f;margin:-4px 0 12px">รายงานพื้นที่ก่อสร้างที่ผู้รับเหมาส่งเข้ามา — แตะเพื่อดูรายละเอียดและรูปถ่าย</p>
+          <div id="constructionReportList"></div>
         </div>
       </section>
 
-      <!-- Approval Queue section -->
+      <!-- Citizen Reports section -->
       <section id="sec-queue" class="section-hidden">
-        <div class="card glass-panel" style="border-left: 4px solid var(--green);">
-          <h3 style="color: var(--green);"><i class="fa-solid fa-clipboard-list"></i> คิวอนุมัติ</h3>
-          <div id="adminQueueList"></div>
-        </div>
         <div class="card glass-panel" style="border-left: 4px solid var(--amber);">
-          <h3 style="color: var(--amber);"><i class="fa-solid fa-comments"></i> Feedback จากประชาชน</h3>
-          <div id="adminFeedbackList"></div>
+          <h3 style="color: var(--amber);"><i class="fa-solid fa-comments"></i> รายงานจากประชาชน</h3>
+          <p style="font-size:0.8rem;color:#68746f;margin:-4px 0 12px">รายงานปัญหาและ feedback ที่ประชาชนส่งเข้ามา — แตะเพื่อดูรายละเอียด</p>
+          <div id="citizenReportList"></div>
         </div>
       </section>
 
-      <!-- KPI section -->
+      <!-- Company Directory section -->
       <section id="sec-kpi" class="section-hidden">
         <div class="card glass-panel" style="border-left: 4px solid var(--blue);">
-          <h3 style="color: var(--blue);"><i class="fa-solid fa-chart-line"></i> KPI ผู้รับเหมา</h3>
-          <div id="adminKpiList"></div>
+          <h3 style="color: var(--blue);"><i class="fa-solid fa-building"></i> บริษัทผู้รับเหมา</h3>
+          <p style="font-size:0.8rem;color:#68746f;margin:-4px 0 12px">รายชื่อบริษัทผู้รับเหมาและโครงการที่รับผิดชอบ — แตะเพื่อดูรายละเอียด</p>
+          <div id="companyList"></div>
         </div>
       </section>
 
-      <!-- hidden hooks for admin.js tab logic compatibility -->
-      <div style="display:none">
-        <button class="admin-tab-btn active" data-admin-tab="queue"></button>
-        <button class="admin-tab-btn" data-admin-tab="feedback"></button>
-        <button class="admin-tab-btn" data-admin-tab="kpi"></button>
-        <div id="adminQueue"></div><div id="adminFeedback"></div><div id="adminKpi"></div>
-      </div>
-
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+      <!-- Construction report detail modal -->
+      <section class="detail-modal" id="reportDetailModal" aria-hidden="true">
+        <div class="detail-panel">
+          <header class="detail-header">
+            <div><p class="eyebrow">รายงานก่อสร้าง</p><h2 id="reportDetailName">-</h2></div>
+            <button class="panel-toggle" id="closeReportDetail" type="button">X</button>
+          </header>
+          <div class="detail-body">
+            <div class="detail-photo-grid" id="reportDetailPhotos"></div>
+            <dl class="detail-list">
+              <dt>ผู้รับเหมา</dt><dd id="reportDetailContractor">-</dd>
+              <dt>ถนน</dt><dd id="reportDetailRoad">-</dd>
+              <dt>GPS</dt><dd id="reportDetailGps">-</dd>
+              <dt>สถานะ</dt><dd id="reportDetailStatus">-</dd>
+              <dt>เริ่ม</dt><dd id="reportDetailStart">-</dd>
+              <dt>สิ้นสุด</dt><dd id="reportDetailEnd">-</dd>
+              <dt>หมายเหตุ</dt><dd id="reportDetailNote">-</dd>
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      <!-- Citizen report detail modal -->
+      <section class="detail-modal" id="citizenDetailModal" aria-hidden="true">
+        <div class="detail-panel">
+          <header class="detail-header">
+            <div><p class="eyebrow">รายงานประชาชน</p><h2 id="citizenDetailTitle">-</h2></div>
+            <button class="panel-toggle" id="closeCitizenDetail" type="button">X</button>
+          </header>
+          <div class="detail-body">
+            <div class="detail-photo-grid" id="citizenDetailPhotos"></div>
+            <dl class="detail-list">
+              <dt>ประเภท</dt><dd id="citizenDetailType">-</dd>
+              <dt>รายละเอียด</dt><dd id="citizenDetailDescription">-</dd>
+              <dt>โครงการ</dt><dd id="citizenDetailZone">-</dd>
+              <dt>GPS</dt><dd id="citizenDetailGps">-</dd>
+              <dt>เวลา</dt><dd id="citizenDetailTime">-</dd>
+              <dt>ผู้แจ้ง</dt><dd id="citizenDetailReporter">-</dd>
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      <!-- Company detail modal -->
+      <section class="detail-modal" id="companyDetailModal" aria-hidden="true">
+        <div class="detail-panel">
+          <header class="detail-header">
+            <div><p class="eyebrow">บริษัท</p><h2 id="companyDetailName">-</h2></div>
+            <button class="panel-toggle" id="closeCompanyDetail" type="button">X</button>
+          </header>
+          <div class="detail-body">
+            <dl class="detail-list">
+              <dt>โครงการทั้งหมด</dt><dd id="companyDetailTotal">-</dd>
+              <dt>กำลังดำเนินการ</dt><dd id="companyDetailActive">-</dd>
+            </dl>
+            <div id="companyDetailProjects"></div>
+          </div>
+        </div>
+      </section>
     </div>
 
     <nav class="mobile-bottom-nav glass-panel" style="border-top-left-radius: 24px; border-top-right-radius: 24px; overflow: hidden; padding-bottom: calc(env(safe-area-inset-bottom) + 8px);">
       <a href="/" class="hover-scale"><i class="fa-solid fa-arrow-left"></i><span>เลือก role</span></a>
-      <button class="active hover-scale" data-section="sec-ai" type="button"><i class="fa-solid fa-brain"></i><span>AI ตรวจ</span></button>
-      <button class="hover-scale" data-section="sec-queue" type="button"><i class="fa-solid fa-clipboard-list"></i><span>อนุมัติ</span></button>
-      <button class="hover-scale" data-section="sec-kpi" type="button"><i class="fa-solid fa-chart-line"></i><span>KPI</span></button>
+      <button class="active hover-scale" data-section="sec-ai" type="button"><i class="fa-solid fa-helmet-safety"></i><span>รายงานก่อสร้าง</span></button>
+      <button class="hover-scale" data-section="sec-queue" type="button"><i class="fa-solid fa-comments"></i><span>รายงานประชาชน</span></button>
+      <button class="hover-scale" data-section="sec-kpi" type="button"><i class="fa-solid fa-building"></i><span>บริษัท</span></button>
     </nav>
   </div>
 
   <script is:inline>
-    // ─── Work level overview cards (ระดับงาน) ───
-    function renderWorkLevelOverview() {
-      const box = document.getElementById('workLevelOverview');
-      if (!box || typeof projects === 'undefined' || typeof WORK_LEVEL_META === 'undefined') return;
-      const meta = WORK_LEVEL_META;
-      const levels = Object.keys(meta).sort((a, b) => meta[a].order - meta[b].order);
-      box.innerHTML = levels.map((lvl) => {
-        const m = meta[lvl];
-        const items = projects.filter((p) => (p.workLevel || 'medium') === lvl);
-        const active = items.filter((p) => p.status === 'in-progress' || p.status === 'delayed').length;
-        return `<button type="button" class="work-level-chip" data-level="${lvl}" title="${m.desc}" style="text-align:left;border:1px solid ${m.color}33;border-left:4px solid ${m.color};background:${m.color}0d;border-radius:12px;padding:10px 12px;cursor:pointer;transition:transform .12s">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-            <span style="font-size:0.72rem;font-weight:700;color:${m.color}">${m.icon} ${m.code}</span>
-            <span style="font-size:1.4rem;font-weight:800;color:${m.color};line-height:1">${items.length}</span>
-          </div>
-          <div style="font-size:0.92rem;font-weight:700;color:#1f2937;margin-top:2px">${m.label}</div>
-          <div style="font-size:0.68rem;color:#68746f;margin-top:2px">${m.audit}</div>
-          <div style="font-size:0.66rem;color:#94a3b8;margin-top:4px">กำลังทำ/ล่าช้า ${active} งาน</div>
-        </button>`;
-      }).join('');
-      box.querySelectorAll('.work-level-chip').forEach((chip) => {
-        chip.addEventListener('mouseenter', () => (chip.style.transform = 'translateY(-2px)'));
-        chip.addEventListener('mouseleave', () => (chip.style.transform = 'none'));
-        chip.addEventListener('click', () => {
-          const first = projects.find((p) => (p.workLevel || 'medium') === chip.dataset.level);
-          const sel = document.getElementById('aiZoneSelect');
-          if (first && sel) { sel.value = String(first.id); sel.dispatchEvent(new Event('change')); }
-        });
-      });
-    }
-
-    // ─── Level badge for the currently selected project ───
-    function renderZoneLevelBadge() {
-      const sel = document.getElementById('aiZoneSelect');
-      const badge = document.getElementById('aiZoneLevelBadge');
-      if (!sel || !badge || typeof projects === 'undefined' || typeof WORK_LEVEL_META === 'undefined') return;
-      const p = projects.find((x) => String(x.id) === String(sel.value));
-      if (!p) { badge.innerHTML = ''; return; }
-      const m = WORK_LEVEL_META[p.workLevel || 'medium'];
-      badge.innerHTML = `<div style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;background:${m.color}14;border:1px solid ${m.color}55;color:${m.color};padding:6px 12px;border-radius:999px;font-size:0.78rem;font-weight:700">
-        <span>${m.icon} ${m.code} · ${m.label}</span>
-        <span style="font-weight:500;opacity:0.85">— ${m.audit}</span>
-      </div>`;
-    }
-
-    function refreshAiLevelUI() {
-      if (window.AiAuditor) window.AiAuditor.populateAuditZoneSelector();
-      renderWorkLevelOverview();
-      renderZoneLevelBadge();
-    }
-
     // Section switcher (both segment tabs and bottom nav share data-section)
     function showAdminSection(id) {
       document.querySelectorAll('#sec-ai, #sec-queue, #sec-kpi').forEach((s) => s.classList.add('section-hidden'));
       const el = document.getElementById(id);
       if (el) el.classList.remove('section-hidden');
       document.querySelectorAll('[data-section]').forEach((b) => b.classList.toggle('active', b.dataset.section === id));
-      // Trigger the relevant admin render
-      if (id === 'sec-queue' && window.AdminModule) { window.AdminModule.renderAdminQueue(); window.AdminModule.renderAdminFeedback(); }
-      if (id === 'sec-kpi' && window.AdminModule) window.AdminModule.renderAdminKpi();
-      if (id === 'sec-ai') refreshAiLevelUI();
+      if (id === 'sec-ai' && window.AdminModule) window.AdminModule.renderConstructionReports();
+      if (id === 'sec-queue' && window.AdminModule) window.AdminModule.renderCitizenReports();
+      if (id === 'sec-kpi' && window.AdminModule) window.AdminModule.renderCompanyList();
     }
     document.querySelectorAll('[data-section]').forEach((btn) => {
       btn.addEventListener('click', () => showAdminSection(btn.dataset.section));
     });
-    // Update badge whenever the selected project changes
-    document.getElementById('aiZoneSelect')?.addEventListener('change', renderZoneLevelBadge);
     // initial populate
-    window.addEventListener('load', refreshAiLevelUI);
+    window.addEventListener('load', () => {
+      if (window.AdminModule) window.AdminModule.renderConstructionReports();
+    });
   </script>
 </BaseLayout>
