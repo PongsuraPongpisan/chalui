@@ -214,6 +214,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       </section>
     </div>
 
+    <section class="submission-success-popup" id="submissionSuccessPopup" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="submissionSuccessTitle">
+      <div class="submission-success-card">
+        <button class="submission-success-close" id="submissionSuccessClose" type="button" aria-label="ปิด"><i class="fa-solid fa-xmark"></i></button>
+        <span class="submission-success-check" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+        <h2 id="submissionSuccessTitle">ส่งรายงานเสร็จสิ้นแล้ว</h2>
+        <p>ระบบบันทึกรายงาน <strong id="submissionSuccessProjectName">โครงการ</strong> เรียบร้อยแล้ว</p>
+        <a class="submission-success-action" id="submissionSuccessViewProject" href="/contractor?section=projects"><i class="fa-solid fa-folder-open"></i> ดูโครงการของฉัน</a>
+      </div>
+    </section>
+
     <nav class="mobile-bottom-nav glass-panel" style="border-top-left-radius: 24px; border-top-right-radius: 24px; overflow: hidden; padding-bottom: calc(env(safe-area-inset-bottom) + 8px);">
       <a href="/" class="hover-scale"><i class="fa-solid fa-arrow-left"></i><span>เลือก role</span></a>
       <button class="active hover-scale" data-section="sec-form" type="button"><i class="fa-solid fa-plus"></i><span>เพิ่มงาน</span></button>

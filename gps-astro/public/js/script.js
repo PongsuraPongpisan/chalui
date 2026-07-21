@@ -2061,6 +2061,37 @@ async function calculateRoute() {
   return activeRoute;
 }
 
+function showSubmissionSuccess(project) {
+  const popup = document.getElementById('submissionSuccessPopup');
+  const projectName = document.getElementById('submissionSuccessProjectName');
+  const viewProject = document.getElementById('submissionSuccessViewProject');
+  const closeButton = document.getElementById('submissionSuccessClose');
+  if (!popup) return;
+
+  if (projectName) projectName.textContent = project.name || 'โครงการ';
+  if (viewProject) viewProject.href = `/contractor/projects/${encodeURIComponent(String(project.id))}`;
+
+  const handleEscape = (event) => {
+    if (event.key === 'Escape') closePopup();
+  };
+  const closePopup = () => {
+    popup.classList.remove('visible');
+    popup.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('submission-success-open');
+    document.removeEventListener('keydown', handleEscape);
+  };
+
+  if (closeButton) closeButton.onclick = closePopup;
+  popup.onclick = (event) => {
+    if (event.target === popup) closePopup();
+  };
+  document.addEventListener('keydown', handleEscape);
+  popup.classList.add('visible');
+  popup.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('submission-success-open');
+  closeButton?.focus();
+}
+
 async function addConstructionProject() {
   const roadSelect = document.getElementById("constructionRoad");
   const anchor = roadAnchors[Number(roadSelect.value)] || roadAnchors[0];
@@ -2137,14 +2168,12 @@ async function addConstructionProject() {
   const setSubmissionState = (state) => {
     if (!addButton) return;
     const isSubmitting = state === 'submitting';
-    const isComplete = state === 'complete';
-    addButton.disabled = isSubmitting || isComplete;
+    addButton.disabled = isSubmitting;
     addButton.classList.toggle('is-submitting', isSubmitting);
-    addButton.classList.toggle('is-complete', isComplete);
     addButton.setAttribute('aria-busy', String(isSubmitting));
-    if (isSubmitting) addButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังส่งรายงาน...';
-    else if (isComplete) addButton.innerHTML = '<i class="fa-solid fa-circle-check"></i> ส่งเสร็จสิ้นแล้ว';
-    else addButton.innerHTML = addButtonDefaultContent;
+    addButton.innerHTML = isSubmitting
+      ? '<i class="fa-solid fa-spinner fa-spin"></i> กำลังส่งรายงาน...'
+      : addButtonDefaultContent;
   };
   setSubmissionState('submitting');
 
@@ -2188,12 +2217,8 @@ async function addConstructionProject() {
   renderSummary();
   renderAll();
   selectProject(savedProject.id, true);
-  setSubmissionState('complete');
-  showToast(`เพิ่มโครงการแล้ว: ${savedProject.name}`);
-  window.setTimeout(() => {
-    setSubmissionState('idle');
-    openProjectDetail(savedProject);
-  }, 1400);
+  setSubmissionState('idle');
+  showSubmissionSuccess(savedProject);
 
   // Reset the site-overview photo picker and 8-checkpoint photo picker for the next submission
   if (typeof window !== "undefined") {

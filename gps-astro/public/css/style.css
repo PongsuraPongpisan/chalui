@@ -3161,11 +3161,105 @@ body.lightbox-open {
   transform: none;
 }
 
-#addConstruction.is-complete {
-  background: #16a34a !important;
-  color: #fff !important;
-  cursor: default;
-  opacity: 1;
+body.submission-success-open { overflow: hidden; }
+
+.submission-success-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(5px);
+}
+
+.submission-success-popup.visible {
+  display: flex;
+  animation: submission-fade-in 180ms ease-out;
+}
+
+.submission-success-card {
+  position: relative;
+  width: min(100%, 380px);
+  padding: 30px 24px 24px;
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+  text-align: center;
+  animation: submission-card-in 240ms ease-out;
+}
+
+.submission-success-check {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #16a34a;
+  box-shadow: 0 0 0 10px rgba(34, 197, 94, 0.09);
+  font-size: 2rem;
+}
+
+.submission-success-card h2 {
+  margin: 0 0 9px;
+  color: #14532d;
+  font-size: 1.25rem;
+}
+
+.submission-success-card p {
+  margin: 0 0 20px;
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.submission-success-card p strong { color: #334155; }
+
+.submission-success-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.submission-success-action {
+  display: inline-flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.submission-success-action:hover { background: #15803d; }
+
+@keyframes submission-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes submission-card-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .mini-map {
