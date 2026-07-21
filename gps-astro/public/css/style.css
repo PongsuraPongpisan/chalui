@@ -1213,6 +1213,7 @@ body.lightbox-open {
 
 .checkpoint-photo-placeholder {
   display: grid;
+  width: 100%;
   min-height: 96px;
   place-items: center;
   align-content: center;
@@ -1222,8 +1223,20 @@ body.lightbox-open {
   border-radius: 10px;
   background: color-mix(in srgb, var(--teal) 4%, white);
   color: var(--muted);
+  font: inherit;
   text-align: center;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
 }
+
+.checkpoint-photo-placeholder:hover,
+.checkpoint-photo-placeholder:focus-visible {
+  border-color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 9%, white);
+  outline: none;
+}
+
+.checkpoint-photo-placeholder:active { transform: scale(0.985); }
 
 .checkpoint-photo-placeholder i {
   color: color-mix(in srgb, var(--teal) 72%, #64748b);
@@ -1232,6 +1245,53 @@ body.lightbox-open {
 
 .checkpoint-photo-placeholder span { font-size: 0.76rem; font-weight: 750; }
 .checkpoint-photo-placeholder small { font-size: 0.66rem; }
+
+.contractor-checkpoint-upload-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.contractor-checkpoint-upload-button {
+  min-height: 38px;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.contractor-checkpoint-upload-button.camera {
+  border-color: var(--teal);
+  background: var(--teal);
+  color: #fff;
+}
+
+.contractor-checkpoint-upload-button:hover { transform: translateY(-1px); }
+.contractor-checkpoint-upload-button:disabled,
+.checkpoint-photo-placeholder:disabled {
+  border-color: #cbd5e1;
+  background: #e2e8f0;
+  color: #64748b;
+  cursor: wait;
+  transform: none;
+}
+
+.contractor-checkpoint-upload-status {
+  min-height: 17px;
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.contractor-checkpoint-upload-status.uploading { color: #64748b; }
+.contractor-checkpoint-upload-status.success { color: #15803d; }
+.contractor-checkpoint-upload-status.error { color: #b91c1c; }
 
 /* Fullscreen lightbox — used for cover gallery + checkpoint albums */
 .image-lightbox {
@@ -3090,6 +3150,16 @@ body.lightbox-open {
 
 .big-action.teal { background: #1f9a9a; }
 .big-action:active { transform: scale(0.98); }
+
+#addConstruction.is-submitting,
+#addConstruction:disabled {
+  background: #94a3b8 !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+  cursor: wait;
+  opacity: 0.92;
+  transform: none;
+}
 
 .mini-map {
   height: 180px;

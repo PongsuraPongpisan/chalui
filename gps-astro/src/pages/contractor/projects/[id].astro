@@ -108,7 +108,7 @@ const toInputDate = (value: unknown) => {
 
         <section class="report-section report-detail-card glass-panel" aria-labelledby="contractor-checkpoint-title">
           <h2 class="report-section-title" id="contractor-checkpoint-title"><i class="fa-solid fa-list-check"></i> รูปตรวจมาตรฐาน 8 จุดสำคัญ</h2>
-          <p class="contractor-gallery-help">แตะรูปเพื่อเปิดอัลบั้มและเลื่อนดูรูปทั้งหมดในจุดนั้น</p>
+          <p class="contractor-gallery-help">แตะรูปเพื่อเปิดอัลบั้ม หรือแตะช่องว่างเพื่อเพิ่มรูปจากกล้องและคลังภาพ</p>
           <div class="checkpoint-albums-grid">
             {CHECKPOINT_META.map((meta) => {
               const photos = checkpointPhotos[meta.key];
@@ -119,12 +119,19 @@ const toInputDate = (value: unknown) => {
                     {photos.map((src, index) => <button class="checkpoint-photo-button" type="button" data-contractor-photo-index={index} aria-label={`ขยายรูป ${meta.label} รูปที่ ${index + 1}`}><img src={src} alt={`${meta.label} รูปที่ ${index + 1}`} loading="lazy"></button>)}
                   </div>
                 ) : (
-                  <div class="checkpoint-photo-placeholder" aria-label={`${meta.label} ยังไม่มีรูป`}>
+                  <button class="checkpoint-photo-placeholder" type="button" data-checkpoint-upload-trigger={meta.key} data-upload-source="gallery" aria-label={`เลือกรูปสำหรับ${meta.label}`}>
                     <i class="fa-regular fa-image"></i>
-                    <span>ยังไม่มีรูป</span>
-                    <small>สามารถเพิ่มรูปภายหลัง</small>
-                  </div>
+                    <span>ยังไม่มีรูป — แตะเพื่อเพิ่ม</span>
+                    <small>เลือกจากคลังภาพหรือใช้ปุ่มถ่ายรูปด้านล่าง</small>
+                  </button>
                 )}
+                <div class="contractor-checkpoint-upload-actions">
+                  <button type="button" class="contractor-checkpoint-upload-button camera" data-checkpoint-upload-trigger={meta.key} data-upload-source="camera"><i class="fa-solid fa-camera"></i> ถ่ายรูป</button>
+                  <button type="button" class="contractor-checkpoint-upload-button gallery" data-checkpoint-upload-trigger={meta.key} data-upload-source="gallery"><i class="fa-solid fa-images"></i> เลือกรูป</button>
+                </div>
+                <input class="visually-hidden contractor-checkpoint-input" id={`contractor-${meta.key}-camera`} type="file" accept="image/*" capture="environment" data-checkpoint-key={meta.key}>
+                <input class="visually-hidden contractor-checkpoint-input" id={`contractor-${meta.key}-gallery`} type="file" accept="image/*" multiple data-checkpoint-key={meta.key}>
+                <p class="contractor-checkpoint-upload-status" data-checkpoint-status={meta.key} role="status" aria-live="polite"></p>
               </section>;
             })}
           </div>
@@ -250,6 +257,85 @@ const toInputDate = (value: unknown) => {
       if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
       changeProjectLightbox(deltaX < 0 ? 1 : -1);
     }, { passive: true });
+
+    function readCheckpointFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('ไม่สามารถอ่านไฟล์รูปได้'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function notifyProjectPhotoUpdate() {
+      try {
+        if ('BroadcastChannel' in window) {
+          const channel = new BroadcastChannel('chalui-projects');
+          channel.postMessage({ type: 'project-updated', id: projectId });
+          channel.close();
+        }
+        localStorage.setItem('chalui-project-updated', `${projectId}:${Date.now()}`);
+      } catch (error) {
+        console.warn('Project photo update notification was unavailable:', error);
+      }
+    }
+
+    document.querySelectorAll('[data-checkpoint-upload-trigger]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const key = button.dataset.checkpointUploadTrigger;
+        const source = button.dataset.uploadSource || 'gallery';
+        document.getElementById(`contractor-${key}-${source}`)?.click();
+      });
+    });
+
+    document.querySelectorAll('.contractor-checkpoint-input').forEach((input) => {
+      input.addEventListener('change', async () => {
+        const key = input.dataset.checkpointKey;
+        const files = Array.from(input.files || []);
+        if (!key || files.length === 0) return;
+
+        const group = input.closest('.checkpoint-album-group');
+        const status = group?.querySelector(`[data-checkpoint-status="${key}"]`);
+        const actionButtons = group?.querySelectorAll('[data-checkpoint-upload-trigger]') || [];
+        group?.classList.add('is-uploading');
+        actionButtons.forEach((button) => { button.disabled = true; });
+        if (status) {
+          status.textContent = 'กำลังอัปโหลดรูป...';
+          status.className = 'contractor-checkpoint-upload-status uploading';
+        }
+
+        try {
+          const newPhotos = await Promise.all(files.map(readCheckpointFile));
+          const updatedCheckpointPhotos = {
+            ...checkpointGalleryData,
+            [key]: [...(checkpointGalleryData[key] || []), ...newPhotos],
+          };
+          const response = await fetch('/api/projects', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: projectId, checkpointPhotos: updatedCheckpointPhotos }),
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || 'อัปโหลดรูปไม่สำเร็จ');
+          checkpointGalleryData[key] = updatedCheckpointPhotos[key];
+          notifyProjectPhotoUpdate();
+          if (status) {
+            status.textContent = 'เพิ่มรูปเรียบร้อยแล้ว';
+            status.className = 'contractor-checkpoint-upload-status success';
+          }
+          window.setTimeout(() => window.location.reload(), 500);
+        } catch (error) {
+          group?.classList.remove('is-uploading');
+          actionButtons.forEach((button) => { button.disabled = false; });
+          if (status) {
+            status.textContent = error.message || 'อัปโหลดรูปไม่สำเร็จ';
+            status.className = 'contractor-checkpoint-upload-status error';
+          }
+        } finally {
+          input.value = '';
+        }
+      });
+    });
 
     form?.addEventListener('submit', async (event) => {
       event.preventDefault();

@@ -2133,7 +2133,17 @@ async function addConstructionProject() {
   };
 
   const addButton = document.getElementById('addConstruction');
-  if (addButton) addButton.disabled = true;
+  const addButtonDefaultContent = addButton?.innerHTML || '<i class="fa-solid fa-plus"></i> ส่งรายงานพื้นที่';
+  const setSubmissionState = (isSubmitting) => {
+    if (!addButton) return;
+    addButton.disabled = isSubmitting;
+    addButton.classList.toggle('is-submitting', isSubmitting);
+    addButton.setAttribute('aria-busy', String(isSubmitting));
+    addButton.innerHTML = isSubmitting
+      ? '<i class="fa-solid fa-spinner fa-spin"></i> กำลังส่งรายงาน...'
+      : addButtonDefaultContent;
+  };
+  setSubmissionState(true);
 
   let savedProject;
   try {
@@ -2146,7 +2156,7 @@ async function addConstructionProject() {
     if (!response.ok) throw new Error(result.error || 'เพิ่มโครงการไม่สำเร็จ');
     savedProject = result.project || project;
   } catch (error) {
-    if (addButton) addButton.disabled = false;
+    setSubmissionState(false);
     showToast(error.message || 'เพิ่มโครงการไม่สำเร็จ');
     return;
   }
@@ -2177,7 +2187,7 @@ async function addConstructionProject() {
   selectProject(savedProject.id, true);
   openProjectDetail(savedProject);
   showToast(`เพิ่มโครงการแล้ว: ${savedProject.name}`);
-  if (addButton) addButton.disabled = false;
+  setSubmissionState(false);
 
   // Reset the site-overview photo picker and 8-checkpoint photo picker for the next submission
   if (typeof window !== "undefined") {
