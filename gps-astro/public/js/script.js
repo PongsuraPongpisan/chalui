@@ -2066,7 +2066,10 @@ function showSubmissionSuccess(project) {
   const projectName = document.getElementById('submissionSuccessProjectName');
   const viewProject = document.getElementById('submissionSuccessViewProject');
   const closeButton = document.getElementById('submissionSuccessClose');
-  if (!popup) return;
+  if (!popup) {
+    window.alert(`ส่งรายงานเสร็จสิ้นแล้ว\n${project.name || 'โครงการ'}`);
+    return;
+  }
 
   if (projectName) projectName.textContent = project.name || 'โครงการ';
   if (viewProject) viewProject.href = `/contractor/projects/${encodeURIComponent(String(project.id))}`;
@@ -2076,6 +2079,7 @@ function showSubmissionSuccess(project) {
   };
   const closePopup = () => {
     popup.classList.remove('visible');
+    popup.style.removeProperty('display');
     popup.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('submission-success-open');
     document.removeEventListener('keydown', handleEscape);
@@ -2087,6 +2091,7 @@ function showSubmissionSuccess(project) {
   };
   document.addEventListener('keydown', handleEscape);
   popup.classList.add('visible');
+  popup.style.display = 'flex';
   popup.setAttribute('aria-hidden', 'false');
   document.body.classList.add('submission-success-open');
   closeButton?.focus();
@@ -2190,6 +2195,11 @@ async function addConstructionProject() {
     return;
   }
 
+  // Confirm success before any secondary map/list rendering can interrupt the flow.
+  setSubmissionState('idle');
+  showSubmissionSuccess(savedProject);
+  await new Promise((resolve) => window.requestAnimationFrame(resolve));
+
   const savedIndex = projects.findIndex((item) => String(item.id) === String(savedProject.id));
   if (savedIndex >= 0) projects[savedIndex] = savedProject;
   else projects.push(savedProject);
@@ -2214,8 +2224,6 @@ async function addConstructionProject() {
   renderSummary();
   renderAll();
   selectProject(savedProject.id, true);
-  setSubmissionState('idle');
-  showSubmissionSuccess(savedProject);
 
   // Reset the site-overview photo picker and 8-checkpoint photo picker for the next submission
   if (typeof window !== "undefined") {
