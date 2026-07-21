@@ -127,15 +127,27 @@
     error.hidden = !message;
   }
 
+  function canDecideProject() {
+    return report.projectStatus === 'completed';
+  }
+
   function setApprovalBusy(busy) {
     document.querySelectorAll('#adminApprovalCard button').forEach((button) => { button.disabled = busy; });
+    const decisionDisabled = busy || !canDecideProject();
     const approve = byId('adminApproveBtn');
-    if (approve) approve.innerHTML = busy ? '<i class="fa-solid fa-hourglass-half"></i> กำลังบันทึก...' : '<i class="fa-solid fa-circle-check"></i> อนุมัติ';
+    const reject = byId('adminRejectBtn');
+    if (approve) {
+      approve.disabled = decisionDisabled;
+      approve.innerHTML = busy ? '<i class="fa-solid fa-hourglass-half"></i> กำลังบันทึก...' : '<i class="fa-solid fa-circle-check"></i> อนุมัติ';
+    }
+    if (reject) reject.disabled = decisionDisabled;
   }
 
   function bindApprovalActions() {
-    byId('adminApproveBtn')?.addEventListener('click', () => submitApproval('approved'));
-    byId('adminRejectBtn')?.addEventListener('click', openRejectModal);
+    if (canDecideProject()) {
+      byId('adminApproveBtn')?.addEventListener('click', () => submitApproval('approved'));
+      byId('adminRejectBtn')?.addEventListener('click', openRejectModal);
+    }
   }
 
   function renderApprovalPanel() {
@@ -149,8 +161,15 @@
       host.appendChild(panel);
     }
     const status = approvalStatus();
+    const isCompleted = canDecideProject();
     const meta = {
-      pending: { icon: 'fa-clock', label: 'รอการอนุมัติ', note: 'ตรวจสอบรายละเอียดและรูปถ่ายก่อนตัดสินใจ' },
+      pending: {
+        icon: 'fa-clock',
+        label: 'รอการอนุมัติ',
+        note: isCompleted
+          ? 'งานเสร็จสิ้นแล้ว กรุณาตรวจสอบรายละเอียดและรูปถ่ายก่อนตัดสินใจ'
+          : 'ยังไม่สามารถอนุมัติหรือไม่อนุมัติได้ เนื่องจากงานยังไม่อยู่ในสถานะเสร็จสิ้น',
+      },
       approved: { icon: 'fa-circle-check', label: 'อนุมัติแล้ว / Approved', note: 'รายงานนี้ได้รับการอนุมัติจากผู้ดูแลระบบแล้ว' },
       rejected: { icon: 'fa-circle-xmark', label: 'ไม่อนุมัติ', note: 'รายงานนี้ไม่ได้รับการอนุมัติ' },
     }[status];
@@ -160,10 +179,19 @@
         <dt>เวลาตัดสินใจ</dt><dd>${escapeHtml(formatDecisionDate(report.adminDecidedAt))}</dd>
         ${status === 'rejected' ? `<dt>เหตุผลที่ไม่อนุมัติ</dt><dd>${escapeHtml(report.adminRejectionReason || '-')}</dd>` : ''}
       </dl>`;
+    const completionNotice = status === 'pending' && !isCompleted ? `
+      <div class="completion-warning" role="note">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        <span><strong>งานยังไม่เสร็จสิ้น</strong><br>ผู้ดูแลระบบจะอนุมัติหรือไม่อนุมัติงานได้ เมื่อผู้รับเหมาเปลี่ยนสถานะเป็น “เสร็จสิ้น” แล้วเท่านั้น</span>
+      </div>` : '';
+    const decisionDisabledAttributes = isCompleted
+      ? ''
+      : ' disabled aria-disabled="true" title="งานต้องมีสถานะเสร็จสิ้นก่อนจึงจะตัดสินผลได้"';
     const actions = status === 'pending' ? `
+      ${completionNotice}
       <div class="admin-approval-actions">
-        <button class="approve-btn approval-action-btn" id="adminApproveBtn" type="button"><i class="fa-solid fa-circle-check"></i> อนุมัติ</button>
-        <button class="reject-btn approval-action-btn" id="adminRejectBtn" type="button"><i class="fa-solid fa-circle-xmark"></i> ไม่อนุมัติ</button>
+        <button class="approve-btn approval-action-btn" id="adminApproveBtn" type="button"${decisionDisabledAttributes}><i class="fa-solid fa-circle-check"></i> อนุมัติ</button>
+        <button class="reject-btn approval-action-btn" id="adminRejectBtn" type="button"${decisionDisabledAttributes}><i class="fa-solid fa-circle-xmark"></i> ไม่อนุมัติ</button>
       </div>` : '';
     panel.innerHTML = `
       <div class="admin-approval-heading">

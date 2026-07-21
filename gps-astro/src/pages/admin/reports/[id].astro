@@ -93,6 +93,7 @@ const backHref = project?.contractor && companyContext === project.contractor
 const reportData = project ? {
   id: project.id,
   name: String(project.name || 'รายงานก่อสร้าง'),
+  projectStatus: statusKey,
   lat: hasCoordinates ? lat : null,
   lng: hasCoordinates ? lng : null,
   boundaryMeters: Number(project.boundaryMeters) || null,

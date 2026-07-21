@@ -31,11 +31,14 @@ export async function PATCH({ params, request, cookies }) {
   if (reason.length > 1000) return json({ error: "Rejection reason is too long" }, 400);
 
   const { data: existing, error: readError } = await supabase.from("projects")
-    .select("legacy_id, admin_approval_status").eq("legacy_id", id).maybeSingle();
+    .select("legacy_id, status, admin_approval_status").eq("legacy_id", id).maybeSingle();
   if (readError) return json({ error: readError.message }, 500);
   if (!existing) return json({ error: "Project not found" }, 404);
   if ((existing.admin_approval_status || "pending") !== "pending") {
     return json({ error: "This project already has a final approval decision" }, 409);
+  }
+  if (existing.status !== "completed") {
+    return json({ error: "ไม่สามารถอนุมัติหรือไม่อนุมัติได้ เนื่องจากงานยังไม่อยู่ในสถานะเสร็จสิ้น" }, 409);
   }
 
   const update = {
@@ -45,8 +48,11 @@ export async function PATCH({ params, request, cookies }) {
     admin_decided_at: new Date().toISOString(),
   };
   const { data, error } = await supabase.from("projects").update(update)
-    .eq("legacy_id", id).eq("admin_approval_status", "pending").select("*").maybeSingle();
+    .eq("legacy_id", id).eq("admin_approval_status", "pending").eq("status", "completed")
+    .select("*").maybeSingle();
   if (error) return json({ error: error.message }, 500);
-  if (!data) return json({ error: "This project already has a final approval decision" }, 409);
+  if (!data) {
+    return json({ error: "ไม่สามารถบันทึกผลได้ โปรดตรวจสอบว่างานเสร็จสิ้นและยังไม่มีผลตัดสิน" }, 409);
+  }
   return json({ success: true, project: rowToClient(data) });
 }
