@@ -4233,3 +4233,24 @@ body.approval-modal-open { overflow: hidden; }
   .approval-decision-details dd + dt { margin-top: 7px; }
   .admin-report-card-footer .admin-approval-badge { order: 3; width: 100%; justify-content: center; }
 }
+
+/* Contractor My Projects displays the authoritative Admin approval state. */
+.contractor-project-card .contractor-approval-status {
+  max-width: none;
+  white-space: nowrap;
+}
+
+.contractor-project-card .contractor-approval-status.approval-pending {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.contractor-project-card .contractor-approval-status.approval-approved {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+/* Approval is now the only Admin construction decision. */
+.admin-approval-actions {
+  grid-template-columns: minmax(0, 1fr);
+}

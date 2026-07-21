@@ -109,9 +109,7 @@
   }
 
   function approvalStatus() {
-    return ['approved', 'rejected'].includes(report.adminApprovalStatus)
-      ? report.adminApprovalStatus
-      : 'pending';
+    return report.adminApprovalStatus === 'approved' ? 'approved' : 'pending';
   }
 
   function formatDecisionDate(value) {
@@ -133,23 +131,18 @@
 
   function setApprovalBusy(busy) {
     document.querySelectorAll('#adminApprovalCard button').forEach((button) => { button.disabled = busy; });
-    const decisionDisabled = busy || !canDecideProject();
     const approve = byId('adminApproveBtn');
-    const reject = byId('adminRejectBtn');
     if (approve) {
-      approve.disabled = decisionDisabled;
+      approve.disabled = busy || !canDecideProject();
       approve.innerHTML = busy ? '<i class="fa-solid fa-hourglass-half"></i> กำลังบันทึก...' : '<i class="fa-solid fa-circle-check"></i> อนุมัติ';
     }
-    if (reject) reject.disabled = decisionDisabled;
   }
 
-  let pendingDecision = null;
   let confirmationTimer = null;
 
   function bindApprovalActions() {
     if (canDecideProject()) {
-      byId('adminApproveBtn')?.addEventListener('click', () => openDecisionConfirmation('approved'));
-      byId('adminRejectBtn')?.addEventListener('click', () => openDecisionConfirmation('rejected'));
+      byId('adminApproveBtn')?.addEventListener('click', openApprovalConfirmation);
     }
   }
 
@@ -170,11 +163,10 @@
         icon: 'fa-clock',
         label: 'รอการอนุมัติ',
         note: isCompleted
-          ? 'งานเสร็จสิ้นแล้ว กรุณาตรวจสอบรายละเอียดและรูปถ่ายก่อนตัดสินใจ'
-          : 'ยังไม่สามารถอนุมัติหรือไม่อนุมัติได้ เนื่องจากงานยังไม่อยู่ในสถานะเสร็จสิ้น',
+          ? 'งานเสร็จสิ้นแล้ว กรุณาตรวจสอบรายละเอียดและรูปถ่ายก่อนอนุมัติ'
+          : 'งานต้องอยู่ในสถานะเสร็จสิ้นก่อนจึงจะอนุมัติได้',
       },
       approved: { icon: 'fa-circle-check', label: 'อนุมัติแล้ว / Approved', note: 'รายงานนี้ได้รับการอนุมัติจากผู้ดูแลระบบแล้ว' },
-      rejected: { icon: 'fa-circle-xmark', label: 'ไม่อนุมัติ', note: 'รายงานนี้ไม่ได้รับการอนุมัติ' },
     }[status];
     const decisionDetails = status === 'pending' ? '' : `
       <dl class="approval-decision-details">
@@ -184,16 +176,15 @@
     const completionNotice = status === 'pending' && !isCompleted ? `
       <div class="completion-warning" role="note">
         <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-        <span><strong>งานยังไม่เสร็จสิ้น</strong><br>ผู้ดูแลระบบจะอนุมัติหรือไม่อนุมัติงานได้ เมื่อผู้รับเหมาเปลี่ยนสถานะเป็น “เสร็จสิ้น” แล้วเท่านั้น</span>
+        <span>ไม่สามารถอนุมัติได้ เนื่องจากงานยังไม่อยู่ในสถานะเสร็จสิ้น</span>
       </div>` : '';
     const decisionDisabledAttributes = isCompleted
       ? ''
-      : ' disabled aria-disabled="true" title="งานต้องมีสถานะเสร็จสิ้นก่อนจึงจะตัดสินผลได้"';
+      : ' disabled aria-disabled="true" title="งานต้องมีสถานะเสร็จสิ้นก่อนจึงจะอนุมัติได้"';
     const actions = status === 'pending' ? `
       ${completionNotice}
       <div class="admin-approval-actions">
         <button class="approve-btn approval-action-btn" id="adminApproveBtn" type="button"${decisionDisabledAttributes}><i class="fa-solid fa-circle-check"></i> อนุมัติ</button>
-        <button class="reject-btn approval-action-btn" id="adminRejectBtn" type="button"${decisionDisabledAttributes}><i class="fa-solid fa-circle-xmark"></i> ไม่อนุมัติ</button>
       </div>` : '';
     panel.innerHTML = `
       <div class="admin-approval-heading">
@@ -219,42 +210,33 @@
     modal.setAttribute('aria-labelledby', 'adminDecisionTitle');
     modal.innerHTML = `
       <div class="reject-modal-panel">
-        <h3 id="adminDecisionTitle"></h3>
-        <p id="adminDecisionMessage"></p>
+        <h3 id="adminDecisionTitle"><i class="fa-solid fa-circle-check"></i> ยืนยันการอนุมัติ</h3>
+        <p id="adminDecisionMessage">ต้องการอนุมัติงานก่อสร้างนี้ใช่หรือไม่? เมื่อตัดสินใจแล้วจะไม่สามารถแก้ไขได้</p>
         <div class="reject-modal-error" id="adminRejectError" hidden></div>
         <div class="reject-modal-actions">
           <button class="secondary-action" id="adminRejectCancel" type="button">ยกเลิก</button>
-          <button id="adminRejectConfirm" type="button" disabled></button>
+          <button class="approve-btn" id="adminRejectConfirm" type="button" disabled></button>
         </div>
       </div>`;
     document.body.appendChild(modal);
     byId('adminRejectCancel')?.addEventListener('click', closeRejectModal);
-    byId('adminRejectConfirm')?.addEventListener('click', confirmDecision);
+    byId('adminRejectConfirm')?.addEventListener('click', confirmApproval);
     modal.addEventListener('click', (event) => { if (event.target === modal) closeRejectModal(); });
     return modal;
   }
 
   function updateConfirmationButton(secondsRemaining) {
     const button = byId('adminRejectConfirm');
-    if (!button || !pendingDecision) return;
-    const isApproval = pendingDecision === 'approved';
-    const label = isApproval ? 'ยืนยันอนุมัติ' : 'ยืนยันไม่อนุมัติ';
-    button.className = isApproval ? 'approve-btn' : 'reject-btn';
+    if (!button) return;
     button.disabled = secondsRemaining > 0;
     button.innerHTML = secondsRemaining > 0
       ? `<i class="fa-solid fa-clock"></i> กดได้ในอีก ${secondsRemaining} วินาที`
-      : `<i class="fa-solid ${isApproval ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> ${label}`;
+      : '<i class="fa-solid fa-circle-check"></i> ยืนยันอนุมัติ';
   }
 
-  function openDecisionConfirmation(decision) {
+  function openApprovalConfirmation() {
     if (!canDecideProject()) return;
     const modal = ensureDecisionModal();
-    pendingDecision = decision;
-    const isApproval = decision === 'approved';
-    byId('adminDecisionTitle').innerHTML = `<i class="fa-solid ${isApproval ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> ${isApproval ? 'ยืนยันการอนุมัติ' : 'ยืนยันการไม่อนุมัติ'}`;
-    byId('adminDecisionMessage').textContent = isApproval
-      ? 'ต้องการอนุมัติงานก่อสร้างนี้ใช่หรือไม่? เมื่อตัดสินใจแล้วจะไม่สามารถแก้ไขได้'
-      : 'ต้องการไม่อนุมัติงานก่อสร้างนี้ใช่หรือไม่? เมื่อตัดสินใจแล้วจะไม่สามารถแก้ไขได้';
     const error = byId('adminRejectError');
     if (error) { error.textContent = ''; error.hidden = true; }
     if (confirmationTimer) window.clearInterval(confirmationTimer);
@@ -277,16 +259,15 @@
   function closeRejectModal() {
     if (confirmationTimer) window.clearInterval(confirmationTimer);
     confirmationTimer = null;
-    pendingDecision = null;
     const modal = byId('adminRejectModal');
     if (modal) modal.hidden = true;
     document.body.classList.remove('approval-modal-open');
   }
 
-  function confirmDecision() {
+  function confirmApproval() {
     const button = byId('adminRejectConfirm');
-    if (!pendingDecision || button?.disabled) return;
-    submitApproval(pendingDecision);
+    if (button?.disabled) return;
+    submitApproval();
   }
 
   function notifyProjectUpdate() {
@@ -300,7 +281,7 @@
     } catch (_) { /* polling remains the fallback */ }
   }
 
-  async function submitApproval(decision) {
+  async function submitApproval() {
     showApprovalError('');
     setApprovalBusy(true);
     const modalButton = byId('adminRejectConfirm');
@@ -309,18 +290,14 @@
       const response = await fetch(`/api/admin/projects/${encodeURIComponent(report.id)}/decision`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision }),
+        body: JSON.stringify({ decision: 'approved' }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'ไม่สามารถบันทึกผลการอนุมัติได้');
       Object.assign(report, result.project || {});
       closeRejectModal();
       notifyProjectUpdate();
-      if (decision === 'approved') {
-        window.location.assign('/admin?section=approved');
-        return;
-      }
-      renderApprovalPanel();
+      window.location.assign('/admin?section=approved');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'ไม่สามารถบันทึกผลการอนุมัติได้';
       if (!byId('adminRejectModal')?.hidden) {

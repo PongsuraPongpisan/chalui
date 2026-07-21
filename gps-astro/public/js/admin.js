@@ -14,16 +14,13 @@ function initAdmin() {
 let activeWorkLevelFilter = null;
 
 function approvalStatusOf(project) {
-  return ['approved', 'rejected'].includes(project?.adminApprovalStatus)
-    ? project.adminApprovalStatus
-    : 'pending';
+  return project?.adminApprovalStatus === 'approved' ? 'approved' : 'pending';
 }
 
 function approvalBadge(status) {
   const meta = {
     pending: { icon: 'fa-clock', label: 'รออนุมัติ' },
     approved: { icon: 'fa-circle-check', label: 'อนุมัติแล้ว / Approved' },
-    rejected: { icon: 'fa-circle-xmark', label: 'ไม่อนุมัติ' },
   }[status];
   return `<span class="admin-approval-badge approval-${status}"><i class="fa-solid ${meta.icon}"></i> ${meta.label}</span>`;
 }

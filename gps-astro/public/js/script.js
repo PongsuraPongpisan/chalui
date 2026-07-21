@@ -1892,6 +1892,8 @@ function renderList() {
   for (const project of items) {
     const status = statuses[project.status] || statuses.planned;
     const isContractorProject = window.APP_ROLE === "contractor";
+    const approvalState = project.adminApprovalStatus === "approved" ? "approved" : "pending";
+    const approvalLabel = approvalState === "approved" ? "อนุมัติ" : "รอการอนุมัติ";
     const levelKey = WORK_LEVEL_META[project.workLevel] ? project.workLevel : "medium";
     const level = WORK_LEVEL_META[levelKey];
 
@@ -1913,7 +1915,7 @@ function renderList() {
           <span class="construction-level-badge level-${levelKey}">${level.icon} ${level.code} · ${level.label}</span>
         </a>
         <span class="contractor-project-card-side">
-          <span class="status-label status-${project.status}">${status.label}</span>
+          <span class="status-label contractor-approval-status approval-${approvalState}">${approvalLabel}</span>
           ${project.status === "completed" ? `
             <span class="contractor-project-locked"><i class="fa-solid fa-lock"></i> ล็อกแล้ว</span>
           ` : `

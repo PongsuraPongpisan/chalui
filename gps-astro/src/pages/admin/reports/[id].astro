@@ -83,9 +83,7 @@ const statusLabel = project ? (STATUS_LABELS[statusKey] || statusKey || '-') : '
 const workLevelLabel = project ? WORK_LEVEL_LABELS[workLevelKey] : '-';
 const companyHref = project?.contractor ? `/admin/companies/${encodeURIComponent(project.contractor)}` : '/admin?section=companies';
 const companyContext = Astro.url.searchParams.get('company') || '';
-const approvalStatus = ['approved', 'rejected'].includes(String(project?.adminApprovalStatus))
-  ? String(project?.adminApprovalStatus)
-  : 'pending';
+const approvalStatus = project?.adminApprovalStatus === 'approved' ? 'approved' : 'pending';
 const returnFromApproved = Astro.url.searchParams.get('from') === 'approved' || approvalStatus === 'approved';
 const backHref = project?.contractor && companyContext === project.contractor
   ? companyHref
