@@ -211,3 +211,20 @@ alter default privileges in schema public grant select on tables to anon, authen
 -- ==========================================
 
 alter table projects add column if not exists extra jsonb not null default '{}';
+
+-- MIGRATION 3 — independent Admin construction approval workflow.
+-- This is intentionally separate from project status and AI admin_decision.
+alter table projects add column if not exists admin_approval_status text not null default 'pending';
+alter table projects add column if not exists admin_rejection_reason text;
+alter table projects add column if not exists admin_decided_by text;
+alter table projects add column if not exists admin_decided_at timestamptz;
+
+do $$
+begin
+  alter table projects add constraint projects_admin_approval_status_check
+    check (admin_approval_status in ('pending', 'approved', 'rejected'));
+exception when duplicate_object then null;
+end $$;
+
+create index if not exists idx_projects_admin_approval_status
+  on projects(admin_approval_status);

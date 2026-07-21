@@ -102,6 +102,181 @@
     window.setTimeout(() => map.invalidateSize(), 100);
   }
 
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, (character) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;',
+    })[character]);
+  }
+
+  function approvalStatus() {
+    return ['approved', 'rejected'].includes(report.adminApprovalStatus)
+      ? report.adminApprovalStatus
+      : 'pending';
+  }
+
+  function formatDecisionDate(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
+  }
+
+  function showApprovalError(message) {
+    const error = byId('adminApprovalError');
+    if (!error) return;
+    error.textContent = message || '';
+    error.hidden = !message;
+  }
+
+  function setApprovalBusy(busy) {
+    document.querySelectorAll('#adminApprovalCard button').forEach((button) => { button.disabled = busy; });
+    const approve = byId('adminApproveBtn');
+    if (approve) approve.innerHTML = busy ? '<i class="fa-solid fa-hourglass-half"></i> กำลังบันทึก...' : '<i class="fa-solid fa-circle-check"></i> อนุมัติ';
+  }
+
+  function bindApprovalActions() {
+    byId('adminApproveBtn')?.addEventListener('click', () => submitApproval('approved'));
+    byId('adminRejectBtn')?.addEventListener('click', openRejectModal);
+  }
+
+  function renderApprovalPanel() {
+    const host = document.querySelector('.report-detail-grid');
+    if (!host) return;
+    let panel = byId('adminApprovalCard');
+    if (!panel) {
+      panel = document.createElement('section');
+      panel.id = 'adminApprovalCard';
+      panel.className = 'report-section report-detail-card glass-panel admin-approval-card';
+      host.appendChild(panel);
+    }
+    const status = approvalStatus();
+    const meta = {
+      pending: { icon: 'fa-clock', label: 'รอการอนุมัติ', note: 'ตรวจสอบรายละเอียดและรูปถ่ายก่อนตัดสินใจ' },
+      approved: { icon: 'fa-circle-check', label: 'อนุมัติแล้ว / Approved', note: 'รายงานนี้ได้รับการอนุมัติจากผู้ดูแลระบบแล้ว' },
+      rejected: { icon: 'fa-circle-xmark', label: 'ไม่อนุมัติ', note: 'รายงานนี้ไม่ได้รับการอนุมัติ' },
+    }[status];
+    const decisionDetails = status === 'pending' ? '' : `
+      <dl class="approval-decision-details">
+        <dt>ผู้ตัดสินใจ</dt><dd>${escapeHtml(report.adminDecidedBy || '-')}</dd>
+        <dt>เวลาตัดสินใจ</dt><dd>${escapeHtml(formatDecisionDate(report.adminDecidedAt))}</dd>
+        ${status === 'rejected' ? `<dt>เหตุผลที่ไม่อนุมัติ</dt><dd>${escapeHtml(report.adminRejectionReason || '-')}</dd>` : ''}
+      </dl>`;
+    const actions = status === 'pending' ? `
+      <div class="admin-approval-actions">
+        <button class="approve-btn approval-action-btn" id="adminApproveBtn" type="button"><i class="fa-solid fa-circle-check"></i> อนุมัติ</button>
+        <button class="reject-btn approval-action-btn" id="adminRejectBtn" type="button"><i class="fa-solid fa-circle-xmark"></i> ไม่อนุมัติ</button>
+      </div>` : '';
+    panel.innerHTML = `
+      <div class="admin-approval-heading">
+        <h2 class="report-section-title"><i class="fa-solid fa-user-check"></i> การอนุมัติงานก่อสร้าง</h2>
+        <span class="approval-status-chip approval-${status}"><i class="fa-solid ${meta.icon}"></i> ${meta.label}</span>
+      </div>
+      <p class="admin-approval-note">${meta.note}</p>
+      ${decisionDetails}
+      <div class="reject-modal-error" id="adminApprovalError" hidden></div>
+      ${actions}`;
+    bindApprovalActions();
+  }
+
+  function ensureRejectModal() {
+    let modal = byId('adminRejectModal');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'adminRejectModal';
+    modal.className = 'reject-modal';
+    modal.hidden = true;
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'adminRejectTitle');
+    modal.innerHTML = `
+      <div class="reject-modal-panel">
+        <h3 id="adminRejectTitle"><i class="fa-solid fa-circle-xmark"></i> ไม่อนุมัติงานก่อสร้าง</h3>
+        <p>กรุณาระบุเหตุผลก่อนยืนยันการไม่อนุมัติ</p>
+        <label for="adminRejectReason">เหตุผล <span aria-hidden="true">*</span></label>
+        <textarea id="adminRejectReason" rows="4" maxlength="1000" required placeholder="ระบุสิ่งที่ต้องแก้ไขหรือเหตุผลที่ไม่อนุมัติ"></textarea>
+        <div class="reject-modal-error" id="adminRejectError" hidden></div>
+        <div class="reject-modal-actions">
+          <button class="secondary-action" id="adminRejectCancel" type="button">ยกเลิก</button>
+          <button class="reject-btn" id="adminRejectConfirm" type="button">ยืนยันไม่อนุมัติ</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    byId('adminRejectCancel')?.addEventListener('click', closeRejectModal);
+    byId('adminRejectConfirm')?.addEventListener('click', confirmRejection);
+    modal.addEventListener('click', (event) => { if (event.target === modal) closeRejectModal(); });
+    return modal;
+  }
+
+  function openRejectModal() {
+    const modal = ensureRejectModal();
+    const reason = byId('adminRejectReason');
+    const error = byId('adminRejectError');
+    if (error) { error.textContent = ''; error.hidden = true; }
+    modal.hidden = false;
+    document.body.classList.add('approval-modal-open');
+    reason?.focus();
+  }
+
+  function closeRejectModal() {
+    const modal = byId('adminRejectModal');
+    if (modal) modal.hidden = true;
+    document.body.classList.remove('approval-modal-open');
+  }
+
+  function confirmRejection() {
+    const reason = byId('adminRejectReason')?.value.trim() || '';
+    const error = byId('adminRejectError');
+    if (!reason) {
+      if (error) { error.textContent = 'กรุณาระบุเหตุผลที่ไม่อนุมัติ'; error.hidden = false; }
+      byId('adminRejectReason')?.focus();
+      return;
+    }
+    submitApproval('rejected', reason);
+  }
+
+  function notifyProjectUpdate() {
+    try {
+      localStorage.setItem('chalui-project-updated', String(Date.now()));
+      if ('BroadcastChannel' in window) {
+        const channel = new BroadcastChannel('chalui-projects');
+        channel.postMessage({ type: 'project-updated', id: report.id });
+        channel.close();
+      }
+    } catch (_) { /* polling remains the fallback */ }
+  }
+
+  async function submitApproval(decision, reason = '') {
+    showApprovalError('');
+    setApprovalBusy(true);
+    const modalButton = byId('adminRejectConfirm');
+    if (modalButton) modalButton.disabled = true;
+    try {
+      const response = await fetch(`/api/admin/projects/${encodeURIComponent(report.id)}/decision`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision, reason }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'ไม่สามารถบันทึกผลการอนุมัติได้');
+      Object.assign(report, result.project || {});
+      closeRejectModal();
+      notifyProjectUpdate();
+      if (decision === 'approved') {
+        window.location.assign('/admin?section=approved');
+        return;
+      }
+      renderApprovalPanel();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'ไม่สามารถบันทึกผลการอนุมัติได้';
+      if (!byId('adminRejectModal')?.hidden) {
+        const modalError = byId('adminRejectError');
+        if (modalError) { modalError.textContent = message; modalError.hidden = false; }
+      } else showApprovalError(message);
+    } finally {
+      setApprovalBusy(false);
+      if (modalButton) modalButton.disabled = false;
+    }
+  }
+
   function initialize() {
     byId('adminReportCoverPrev')?.addEventListener('click', () => changeCover(-1));
     byId('adminReportCoverNext')?.addEventListener('click', () => changeCover(1));
@@ -129,6 +304,7 @@
     });
     document.addEventListener('keydown', (event) => {
       const lightbox = byId('adminReportLightbox');
+      if (event.key === 'Escape' && !byId('adminRejectModal')?.hidden) closeRejectModal();
       if (!lightbox?.classList.contains('visible')) return;
       if (event.key === 'Escape') closeLightbox();
       if (event.key === 'ArrowLeft') changeLightbox(-1);
@@ -137,6 +313,7 @@
 
     addSwipe(byId('adminReportCover'), () => changeCover(1), () => changeCover(-1));
     addSwipe(byId('adminReportLightbox'), () => changeLightbox(1), () => changeLightbox(-1));
+    renderApprovalPanel();
     initializeMap();
   }
 

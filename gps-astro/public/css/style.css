@@ -4150,3 +4150,86 @@ body[data-role="contractor"] .mini-map .leaflet-container {
   .contractor-delete-action { width: 100%; }
   .contractor-project-form .card-grid.two { grid-template-columns: 1fr; }
 }
+
+/* ─── Admin construction approval workflow ─── */
+.admin-approval-card {
+  border-left: 4px solid var(--teal);
+}
+
+.admin-approval-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.approval-status-chip,
+.admin-approval-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.approval-pending { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+.approval-approved { background: #ecfdf5; border-color: #86efac; color: #166534; }
+.approval-rejected { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+
+.admin-approval-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.admin-approval-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.approval-action-btn {
+  min-height: 48px;
+  font-size: 0.92rem;
+}
+
+.approve-btn:disabled,
+.reject-btn:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.approval-decision-details {
+  display: grid;
+  grid-template-columns: minmax(115px, 0.35fr) 1fr;
+  gap: 8px 12px;
+  margin: 14px 0 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f7faf8;
+  font-size: 0.82rem;
+}
+
+.approval-decision-details dt { color: var(--muted); font-weight: 700; }
+.approval-decision-details dd { margin: 0; color: #26332d; font-weight: 650; white-space: pre-wrap; }
+.approved-report-card { border-color: #86efac; box-shadow: inset 4px 0 0 #22c55e; }
+.admin-report-card-footer .admin-approval-badge { flex: 0 0 auto; }
+.reject-modal[hidden], .reject-modal-error[hidden] { display: none !important; }
+.reject-modal-panel > p { margin: 0; color: var(--muted); font-size: 0.84rem; }
+.reject-modal-panel > label { color: #37443e; font-size: 0.82rem; font-weight: 800; }
+body.approval-modal-open { overflow: hidden; }
+.approve-btn:focus-visible, .reject-btn:focus-visible { outline: 3px solid rgba(31, 154, 154, 0.25); outline-offset: 2px; }
+
+@media (max-width: 430px) {
+  .admin-approval-actions { grid-template-columns: 1fr; }
+  .approval-decision-details { grid-template-columns: 1fr; gap: 3px; }
+  .approval-decision-details dd + dt { margin-top: 7px; }
+  .admin-report-card-footer .admin-approval-badge { order: 3; width: 100%; justify-content: center; }
+}

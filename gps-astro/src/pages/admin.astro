@@ -13,8 +13,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </header>
 
     <div class="mobile-content">
-      <div class="segment-tabs">
+      <div class="segment-tabs admin-section-tabs">
         <button class="active" data-section="sec-ai" type="button">🏗️ รายงานก่อสร้าง</button>
+        <button data-section="sec-approved" type="button">✅ งานที่อนุมัติแล้ว</button>
         <button data-section="sec-queue" type="button">💬 รายงานประชาชน</button>
         <button data-section="sec-kpi" type="button">🏢 บริษัท</button>
       </div>
@@ -29,9 +30,18 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
 
         <div class="card glass-panel" style="border-left: 4px solid var(--teal);">
-          <h3 style="color: var(--teal);"><i class="fa-solid fa-helmet-safety"></i> รายงานก่อสร้างทั้งหมด</h3>
-          <p style="font-size:0.8rem;color:#68746f;margin:-4px 0 12px">รายงานพื้นที่ก่อสร้างที่ผู้รับเหมาส่งเข้ามา — แตะเพื่อดูรายละเอียดและรูปถ่าย</p>
+          <h3 style="color: var(--teal);"><i class="fa-solid fa-helmet-safety"></i> รายงานก่อสร้างที่รอตรวจสอบ</h3>
+          <p style="font-size:0.8rem;color:#68746f;margin:-4px 0 12px">รายงานพื้นที่ก่อสร้างที่ยังไม่ได้อนุมัติ — แตะเพื่อดูรายละเอียดและตัดสินใจ</p>
           <div id="constructionReportList"></div>
+        </div>
+      </section>
+
+      <!-- Approved construction reports section -->
+      <section id="sec-approved" class="section-hidden">
+        <div class="card glass-panel approved-reports-panel">
+          <h3><i class="fa-solid fa-circle-check"></i> งานที่อนุมัติแล้ว</h3>
+          <p>รายงานที่ผ่านการอนุมัติจากผู้ดูแลระบบ — แตะเพื่อเปิดรายละเอียดงานตามปกติ</p>
+          <div id="approvedReportList"></div>
         </div>
       </section>
 
@@ -75,13 +85,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           </div>
         </div>
       </section>
-
     </div>
 
     <nav class="mobile-bottom-nav glass-panel" style="border-top-left-radius: 24px; border-top-right-radius: 24px; overflow: hidden; padding-bottom: calc(env(safe-area-inset-bottom) + 8px);">
       <a href="/" class="hover-scale"><i class="fa-solid fa-arrow-left"></i><span>เลือก role</span></a>
-      <button class="active hover-scale" data-section="sec-ai" type="button"><i class="fa-solid fa-helmet-safety"></i><span>รายงานก่อสร้าง</span></button>
-      <button class="hover-scale" data-section="sec-queue" type="button"><i class="fa-solid fa-comments"></i><span>รายงานประชาชน</span></button>
+      <button class="active hover-scale" data-section="sec-ai" type="button"><i class="fa-solid fa-helmet-safety"></i><span>รอตรวจสอบ</span></button>
+      <button class="hover-scale" data-section="sec-approved" type="button"><i class="fa-solid fa-circle-check"></i><span>อนุมัติแล้ว</span></button>
+      <button class="hover-scale" data-section="sec-queue" type="button"><i class="fa-solid fa-comments"></i><span>ประชาชน</span></button>
       <button class="hover-scale" data-section="sec-kpi" type="button"><i class="fa-solid fa-building"></i><span>บริษัท</span></button>
     </nav>
   </div>
@@ -89,11 +99,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   <script is:inline>
     // Section switcher (both segment tabs and bottom nav share data-section)
     function showAdminSection(id) {
-      document.querySelectorAll('#sec-ai, #sec-queue, #sec-kpi').forEach((s) => s.classList.add('section-hidden'));
+      document.querySelectorAll('#sec-ai, #sec-approved, #sec-queue, #sec-kpi').forEach((s) => s.classList.add('section-hidden'));
       const el = document.getElementById(id);
       if (el) el.classList.remove('section-hidden');
       document.querySelectorAll('[data-section]').forEach((b) => b.classList.toggle('active', b.dataset.section === id));
-      if (id === 'sec-ai' && window.AdminModule) window.AdminModule.renderConstructionReports();
+      if ((id === 'sec-ai' || id === 'sec-approved') && window.AdminModule) window.AdminModule.renderConstructionReports();
       if (id === 'sec-queue' && window.AdminModule) window.AdminModule.renderCitizenReports();
       if (id === 'sec-kpi' && window.AdminModule) window.AdminModule.renderCompanyList();
     }
@@ -103,7 +113,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     // Restore the requested Admin section when returning from a dedicated page.
     window.addEventListener('load', () => {
       const requested = new URLSearchParams(window.location.search).get('section');
-      const sectionId = requested === 'companies' ? 'sec-kpi' : requested === 'citizens' ? 'sec-queue' : 'sec-ai';
+      const sectionId = requested === 'approved'
+        ? 'sec-approved'
+        : requested === 'companies' ? 'sec-kpi' : requested === 'citizens' ? 'sec-queue' : 'sec-ai';
       showAdminSection(sectionId);
     });
   </script>
