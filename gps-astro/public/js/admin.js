@@ -221,50 +221,19 @@ function renderCompanyList() {
 
   container.innerHTML = entries.map((c) => {
     const active = c.projects.filter((p) => p.status === 'in-progress' || p.status === 'delayed').length;
+    const companyUrl = `/admin/companies/${encodeURIComponent(c.name)}`;
     return `
-      <div class="admin-queue-card" data-company="${encodeURIComponent(c.name)}" role="button" tabindex="0">
+      <a class="admin-queue-card company-list-link" href="${companyUrl}">
+        <span class="company-list-icon" aria-hidden="true"><i class="fa-solid fa-building"></i></span>
         <div class="queue-info">
           <strong>${c.name}</strong>
           <span>โครงการที่กำลังดำเนินการ: ${active} | ทั้งหมด: ${c.projects.length}</span>
         </div>
-      </div>
+        <i class="fa-solid fa-chevron-right company-list-arrow" aria-hidden="true"></i>
+      </a>
     `;
   }).join('');
-
-  container.querySelectorAll('[data-company]').forEach((card) => {
-    card.addEventListener('click', () => openCompanyDetail(decodeURIComponent(card.dataset.company)));
-  });
 }
-
-function openCompanyDetail(companyName) {
-  const companyProjects = typeof projects !== 'undefined' ? projects.filter((p) => p.contractor === companyName) : [];
-  const active = companyProjects.filter((p) => p.status === 'in-progress' || p.status === 'delayed').length;
-
-  document.getElementById('companyDetailName').textContent = companyName;
-  document.getElementById('companyDetailTotal').textContent = companyProjects.length;
-  document.getElementById('companyDetailActive').textContent = active;
-
-  const listHost = document.getElementById('companyDetailProjects');
-  listHost.innerHTML = companyProjects.map((p) => `
-    <div class="admin-queue-card">
-      <div class="queue-info">
-        <strong>${p.name}</strong>
-        <span>${p.roadName || ''}</span>
-        <span>สถานะ: ${statusLabelOf(p.status)}</span>
-      </div>
-    </div>
-  `).join('');
-
-  const modal = document.getElementById('companyDetailModal');
-  modal.classList.add('visible');
-  modal.setAttribute('aria-hidden', 'false');
-}
-
-document.getElementById('closeCompanyDetail')?.addEventListener('click', () => {
-  const modal = document.getElementById('companyDetailModal');
-  modal.classList.remove('visible');
-  modal.setAttribute('aria-hidden', 'true');
-});
 
 // Expose
 window.AdminModule = { renderConstructionReports, renderCitizenReports, renderCompanyList };

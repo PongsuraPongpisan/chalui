@@ -80,6 +80,9 @@ const requestedWorkLevel = project?.workLevel || 'medium';
 const workLevelKey = WORK_LEVEL_LABELS[requestedWorkLevel] ? requestedWorkLevel : 'medium';
 const statusLabel = project ? (STATUS_LABELS[statusKey] || statusKey || '-') : '-';
 const workLevelLabel = project ? WORK_LEVEL_LABELS[workLevelKey] : '-';
+const companyHref = project?.contractor ? `/admin/companies/${encodeURIComponent(project.contractor)}` : '/admin?section=companies';
+const companyContext = Astro.url.searchParams.get('company') || '';
+const backHref = project?.contractor && companyContext === project.contractor ? companyHref : '/admin';
 const reportData = project ? {
   name: String(project.name || 'รายงานก่อสร้าง'),
   lat: hasCoordinates ? lat : null,
@@ -92,7 +95,7 @@ const reportData = project ? {
 <BaseLayout title={project?.name || 'รายงานก่อสร้าง'} role="admin">
   <div class="mobile-page admin-report-page">
     <header class="mobile-header">
-      <a href="/admin" class="back-btn" aria-label="กลับไปรายงานก่อสร้าง"><i class="fa-solid fa-arrow-left"></i></a>
+      <a href={backHref} class="back-btn" aria-label="กลับไปหน้าก่อนหน้า"><i class="fa-solid fa-arrow-left"></i></a>
       <div>
         <h1>รายงานก่อสร้าง</h1>
         <small>{project ? `รายงานเลขที่ ${project.id}` : 'ไม่พบรายงาน'}</small>
@@ -135,7 +138,7 @@ const reportData = project ? {
               <span class="report-meta-chip"><i class="fa-solid fa-location-dot"></i> {project.province || 'ไม่ระบุจังหวัด'}</span>
             </div>
             <h2 class="listing-title">{project.name || '-'}</h2>
-            <p class="listing-contractor"><i class="fa-solid fa-building"></i> {project.contractor || '-'}</p>
+            <a class="listing-contractor company-report-link" href={companyHref}><i class="fa-solid fa-building"></i> {project.contractor || '-'}</a>
           </section>
 
           <section class="report-section report-detail-card glass-panel">

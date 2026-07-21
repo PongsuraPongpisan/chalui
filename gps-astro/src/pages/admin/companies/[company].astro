@@ -1,0 +1,227 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { rowToClient } from '../../../lib/project-mapper.js';
+import { supabase } from '../../../lib/supabase.js';
+
+export const prerender = false;
+
+type Project = Record<string, unknown> & {
+  id: number;
+  name?: string;
+  province?: string;
+  contractor?: string;
+  status?: string;
+  workLevel?: string;
+  roadName?: string;
+  start?: string;
+  end?: string;
+  sitePhotos?: unknown;
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  completed: 'เสร็จสิ้น', 'in-progress': 'กำลังดำเนินการ',
+  delayed: 'ล่าช้า', planned: 'วางแผน',
+};
+const WORK_LEVELS: Record<string, { label: string; icon: string }> = {
+  critical: { label: 'ระดับ 1 — วิกฤต', icon: '🔴' },
+  high: { label: 'ระดับ 2 — สูง', icon: '🟠' },
+  medium: { label: 'ระดับ 3 — ปานกลาง', icon: '🟡' },
+  routine: { label: 'ระดับ 4 — ทั่วไป', icon: '🟢' },
+};
+const MOCK_COVER_PHOTO = 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=1200&q=75&auto=format&fit=crop';
+const isAllowedPhoto = (value: unknown): value is string => typeof value === 'string' && (/^data:image\//.test(value) || /^https:\/\//.test(value));
+const projectCover = (project: Project) => Array.isArray(project.sitePhotos) ? project.sitePhotos.find(isAllowedPhoto) || MOCK_COVER_PHOTO : MOCK_COVER_PHOTO;
+const formatDate = (value: unknown) => {
+  if (!value) return '-';
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+};
+const rawCompany = Astro.params.company || '';
+let companyName = '';
+try {
+  companyName = decodeURIComponent(rawCompany).trim();
+} catch {
+  companyName = '';
+}
+const validCompany = companyName.length > 0 && companyName.length <= 200;
+let projects: Project[] = [];
+let loadError = '';
+if (validCompany) {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('contractor', companyName)
+    .order('start_date', { ascending: false });
+  if (error) loadError = 'ไม่สามารถโหลดข้อมูลบริษัทได้ในขณะนี้';
+  else projects = (data || []).map((row) => rowToClient(row) as Project);
+}
+if (projects.length === 0) Astro.response.status = loadError ? 500 : 404;
+
+const getTextField = (keys: string[]) => {
+  for (const project of projects) {
+    for (const key of keys) {
+      const value = project[key];
+      if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+  }
+  return '';
+};
+const rawPhone = getTextField(['contractorPhone', 'contactPhone', 'phone']);
+const phone = /^[+\d\s().-]{6,30}$/.test(rawPhone) ? rawPhone : '';
+const rawEmail = getTextField(['contractorEmail', 'contactEmail', 'email']);
+const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) ? rawEmail : '';
+const mailSubject = encodeURIComponent(`ติดต่อบริษัท ${companyName}`);
+const mailBody = encodeURIComponent(`เรียน ${companyName}\n\nต้องการสอบถามข้อมูลเกี่ยวกับโครงการก่อสร้าง`);
+const contactHref = phone ? `tel:${phone.replace(/[^+\d]/g, '')}` : email ? `mailto:${email}?subject=${mailSubject}` : `mailto:?subject=${mailSubject}&body=${mailBody}`;
+const contactLabel = phone ? 'โทรติดต่อ' : email ? 'ส่งอีเมล' : 'ติดต่อ';
+const contactDescription = phone || email || 'เปิดแอปอีเมลเพื่อเริ่มการติดต่อ';
+
+const activeCount = projects.filter((project) => project.status === 'in-progress' || project.status === 'delayed').length;
+const completedCount = projects.filter((project) => project.status === 'completed').length;
+const provinces = [...new Set(projects.map((project) => project.province).filter((value): value is string => Boolean(value)))];
+const roads = [...new Set(projects.map((project) => project.roadName).filter((value): value is string => Boolean(value)))];
+const realDescription = getTextField(['companyDescription', 'contractorDescription']);
+const coverageText = provinces.length ? ` ครอบคลุมพื้นที่ ${provinces.join(', ')}` : '';
+const companyDescription = realDescription || `บริษัทผู้รับเหมาที่รับผิดชอบ ${projects.length} โครงการในระบบ${coverageText}`;
+const initials = companyName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('') || 'CO';
+const heroPhoto = projects.length ? projectCover(projects[0]) : MOCK_COVER_PHOTO;
+const companySegment = encodeURIComponent(companyName);
+const projectHref = (project: Project) => `/admin/reports/${encodeURIComponent(String(project.id))}?company=${companySegment}`;
+const projectLevel = (project: Project) => WORK_LEVELS[project.workLevel || ''] ? project.workLevel as string : 'medium';
+const projectStatus = (project: Project) => STATUS_LABELS[project.status || ''] ? project.status as string : 'planned';
+---
+<BaseLayout title={projects.length ? companyName : 'ข้อมูลบริษัท'} role="admin">
+  <div class="mobile-page admin-report-page admin-company-page">
+    <header class="mobile-header">
+      <a href="/admin?section=companies" class="back-btn" aria-label="กลับไปหน้ารายชื่อบริษัท"><i class="fa-solid fa-arrow-left"></i></a>
+      <div>
+        <h1>ข้อมูลบริษัท</h1>
+        <small>{projects.length ? `${projects.length} โครงการในระบบ` : 'ไม่พบข้อมูลบริษัท'}</small>
+      </div>
+      <button id="logoutBtn" type="button" class="back-btn" aria-label="ออกจากระบบ" style="margin-left:auto"><i class="fa-solid fa-right-from-bracket"></i></button>
+    </header>
+
+    {projects.length === 0 ? (
+      <main class="mobile-content admin-report-main">
+        <section class="card glass-panel report-not-found">
+          <i class={`fa-solid ${loadError ? 'fa-circle-exclamation' : 'fa-building-circle-xmark'}`} style="font-size:2.5rem;color:var(--amber)"></i>
+          <h2>{loadError || 'ไม่พบข้อมูลบริษัทนี้'}</h2>
+          <p>กรุณากลับไปเลือกบริษัทจากหน้าผู้ดูแลระบบอีกครั้ง</p>
+          <a href="/admin?section=companies" class="big-action company-back-action">กลับหน้ารายชื่อบริษัท</a>
+        </section>
+      </main>
+    ) : (
+      <main class="mobile-content company-profile-main">
+        <section class="company-hero" aria-label={`ภาพบริษัท ${companyName}`}>
+          <img src={heroPhoto} alt={`โครงการของ ${companyName}`}>
+          <div class="company-hero-shade"></div>
+        </section>
+
+        <section class="company-profile-card glass-panel">
+          <div class="company-identity-row">
+            <div class="company-avatar" aria-hidden="true">{initials}</div>
+            <span class="company-system-badge"><i class="fa-solid fa-circle-check"></i> บริษัทในระบบ</span>
+          </div>
+          <h2>{companyName}</h2>
+          <p class="company-type"><i class="fa-solid fa-helmet-safety"></i> บริษัทผู้รับเหมาก่อสร้าง</p>
+          <p class="company-description">{companyDescription}</p>
+          <div class="company-stats" aria-label="สถิติโครงการ">
+            <div><strong>{projects.length}</strong><span>โครงการทั้งหมด</span></div>
+            <div><strong>{activeCount}</strong><span>กำลังดำเนินการ</span></div>
+            <div><strong>{completedCount}</strong><span>เสร็จสิ้น</span></div>
+          </div>
+
+          <div class="company-actions">
+            <a class="company-action company-contact-action" href={contactHref} title={contactDescription}>
+              <i class={`fa-solid ${phone ? 'fa-phone' : 'fa-envelope'}`}></i> {contactLabel}
+            </a>
+            <button class="company-action company-follow-action" id="companyFollowButton" type="button" data-company={companyName} aria-pressed="false">
+              <i class="fa-regular fa-bookmark"></i> <span>ติดตาม</span>
+            </button>
+          </div>
+          <p class="company-contact-note"><i class="fa-solid fa-address-card"></i> {contactDescription}</p>
+        </section>
+
+        <section class="company-info-grid" aria-label="ขอบเขตการดำเนินงาน">
+          <article class="company-info-card glass-panel">
+            <i class="fa-solid fa-map-location-dot"></i>
+            <div><span>พื้นที่ดำเนินงาน</span><strong>{provinces.length ? provinces.join(', ') : 'ไม่ระบุ'}</strong></div>
+          </article>
+          <article class="company-info-card glass-panel">
+            <i class="fa-solid fa-road"></i>
+            <div><span>ถนนในความรับผิดชอบ</span><strong>{roads.length ? `${roads.length} เส้นทาง` : 'ไม่ระบุ'}</strong></div>
+          </article>
+        </section>
+
+        <section class="company-projects-section">
+          <header class="company-section-header">
+            <div>
+              <p class="eyebrow">PROJECT PORTFOLIO</p>
+              <h2>โครงการของบริษัท <span>({projects.length})</span></h2>
+            </div>
+            <i class="fa-solid fa-building-circle-check"></i>
+          </header>
+
+          <div class="company-project-grid">
+            {projects.map((project) => {
+              const levelKey = projectLevel(project);
+              const level = WORK_LEVELS[levelKey];
+              const statusKey = projectStatus(project);
+              return <a class="company-project-card glass-panel" href={projectHref(project)}>
+                <div class="company-project-media">
+                  <img src={projectCover(project)} alt={`รูปโครงการ ${project.name || ''}`} loading="lazy">
+                  <span class={`company-project-status status-${statusKey}`}><i class="fa-solid fa-circle"></i> {STATUS_LABELS[statusKey]}</span>
+                </div>
+                <div class="company-project-content">
+                  <div class="company-project-title-row">
+                    <h3>{project.name || 'โครงการก่อสร้าง'}</h3>
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                  </div>
+                  <p><i class="fa-solid fa-location-dot"></i> {project.roadName || project.province || 'ไม่ระบุพื้นที่'}</p>
+                  <div class="company-project-footer">
+                    <span class={`construction-level-badge company-project-level level-${levelKey}`}>{level.icon} {level.label}</span>
+                    <span class="company-project-date">{formatDate(project.start)} – {formatDate(project.end)}</span>
+                  </div>
+                </div>
+              </a>;
+            })}
+          </div>
+        </section>
+      </main>
+    )}
+  </div>
+  <script is:inline>
+    const followButton = document.getElementById('companyFollowButton');
+    if (followButton) {
+      const storageKey = 'chalui:admin:followed-companies:v1';
+      const company = followButton.dataset.company || '';
+      let followedCompanies = new Set();
+      try {
+        const stored = JSON.parse(window.localStorage.getItem(storageKey) || '[]');
+        if (Array.isArray(stored)) followedCompanies = new Set(stored.filter((item) => typeof item === 'string'));
+      } catch {
+        followedCompanies = new Set();
+      }
+
+      const renderFollowState = () => {
+        const isFollowing = followedCompanies.has(company);
+        followButton.classList.toggle('is-following', isFollowing);
+        followButton.setAttribute('aria-pressed', String(isFollowing));
+        followButton.querySelector('i').className = isFollowing ? 'fa-solid fa-bookmark' : 'fa-regular fa-bookmark';
+        followButton.querySelector('span').textContent = isFollowing ? 'กำลังติดตาม' : 'ติดตาม';
+      };
+
+      followButton.addEventListener('click', () => {
+        if (followedCompanies.has(company)) followedCompanies.delete(company);
+        else followedCompanies.add(company);
+        try {
+          window.localStorage.setItem(storageKey, JSON.stringify([...followedCompanies]));
+        } catch {
+          // Keep the current-page state when browser storage is unavailable.
+        }
+        renderFollowState();
+      });
+      renderFollowState();
+    }
+  </script>
+</BaseLayout>

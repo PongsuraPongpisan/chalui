@@ -76,22 +76,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
       </section>
 
-      <!-- Company detail modal -->
-      <section class="detail-modal" id="companyDetailModal" aria-hidden="true">
-        <div class="detail-panel">
-          <header class="detail-header">
-            <div><p class="eyebrow">บริษัท</p><h2 id="companyDetailName">-</h2></div>
-            <button class="panel-toggle" id="closeCompanyDetail" type="button">X</button>
-          </header>
-          <div class="detail-body">
-            <dl class="detail-list">
-              <dt>โครงการทั้งหมด</dt><dd id="companyDetailTotal">-</dd>
-              <dt>กำลังดำเนินการ</dt><dd id="companyDetailActive">-</dd>
-            </dl>
-            <div id="companyDetailProjects"></div>
-          </div>
-        </div>
-      </section>
     </div>
 
     <nav class="mobile-bottom-nav glass-panel" style="border-top-left-radius: 24px; border-top-right-radius: 24px; overflow: hidden; padding-bottom: calc(env(safe-area-inset-bottom) + 8px);">
@@ -116,9 +100,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     document.querySelectorAll('[data-section]').forEach((btn) => {
       btn.addEventListener('click', () => showAdminSection(btn.dataset.section));
     });
-    // initial populate
+    // Restore the requested Admin section when returning from a dedicated page.
     window.addEventListener('load', () => {
-      if (window.AdminModule) window.AdminModule.renderConstructionReports();
+      const requested = new URLSearchParams(window.location.search).get('section');
+      const sectionId = requested === 'companies' ? 'sec-kpi' : requested === 'citizens' ? 'sec-queue' : 'sec-ai';
+      showAdminSection(sectionId);
     });
   </script>
 </BaseLayout>
