@@ -25,10 +25,7 @@ export async function PATCH({ params, request, cookies }) {
   try { body = await request.json(); }
   catch { return json({ error: "Invalid JSON body" }, 400); }
   const decision = String(body?.decision || "");
-  const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
   if (!VALID_DECISIONS.has(decision)) return json({ error: "Invalid approval decision" }, 400);
-  if (decision === "rejected" && !reason) return json({ error: "กรุณาระบุเหตุผลที่ไม่อนุมัติ" }, 400);
-  if (reason.length > 1000) return json({ error: "Rejection reason is too long" }, 400);
 
   const { data: existing, error: readError } = await supabase.from("projects")
     .select("legacy_id, status, admin_approval_status").eq("legacy_id", id).maybeSingle();
@@ -43,7 +40,7 @@ export async function PATCH({ params, request, cookies }) {
 
   const update = {
     admin_approval_status: decision,
-    admin_rejection_reason: decision === "rejected" ? reason : null,
+    admin_rejection_reason: null,
     admin_decided_by: String(session.username || "admin"),
     admin_decided_at: new Date().toISOString(),
   };
