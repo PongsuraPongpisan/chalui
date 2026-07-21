@@ -3630,6 +3630,18 @@ body.lightbox-open {
   white-space: nowrap;
 }
 
+/* Admin overview reuses the Contractor level-card appearance and pressed state. */
+.work-level-chip { min-height: 112px; }
+.work-level-chip .admin-work-level-count {
+  margin-left: auto;
+  color: var(--level-color);
+  font-size: 1.35rem;
+  font-weight: 850;
+  line-height: 1;
+}
+.work-level-chip .construction-level-option-head > i { margin-left: 0; }
+.work-level-chip .admin-work-level-summary { color: #94a3b8; }
+
 @media (max-width: 430px) {
   .admin-report-card-footer {
     align-items: flex-end;
