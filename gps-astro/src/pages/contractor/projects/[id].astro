@@ -1,0 +1,175 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { rowToClient } from '../../../lib/project-mapper.js';
+import { getSession } from '../../../lib/session.js';
+import { supabase } from '../../../lib/supabase.js';
+
+export const prerender = false;
+
+type Project = Record<string, unknown> & {
+  id: number; name?: string; province?: string; contractor?: string; status?: string;
+  workLevel?: string; roadName?: string; lat?: number; lng?: number;
+  boundaryMeters?: number; start?: string; end?: string; workType?: string;
+  statusNote?: string; sitePhotos?: unknown;
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  completed: 'เสร็จสิ้น', 'in-progress': 'กำลังทำ', delayed: 'ล่าช้า', planned: 'วางแผน',
+};
+const LEVEL_LABELS: Record<string, string> = {
+  critical: 'ระดับ 1 — วิกฤต', high: 'ระดับ 2 — สูง',
+  medium: 'ระดับ 3 — ปานกลาง', routine: 'ระดับ 4 — ทั่วไป',
+};
+const MOCK_PHOTO = 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=1200&q=75&auto=format&fit=crop';
+const idText = Astro.params.id || '';
+const id = Number(idText);
+const validId = /^\d+$/.test(idText) && Number.isSafeInteger(id) && id > 0;
+const session = getSession(Astro.cookies);
+let project: Project | null = null;
+let loadError = '';
+if (validId) {
+  const { data, error } = await supabase.from('projects').select('*').eq('legacy_id', id).maybeSingle();
+  if (error) loadError = 'ไม่สามารถโหลดโครงการได้';
+  else if (data) {
+    const owner = data.extra?.ownerUsername;
+    const allowed = session?.role === 'contractor' && Boolean(owner) && owner === session.username;
+    if (allowed) project = rowToClient(data) as Project;
+  }
+}
+if (!project) Astro.response.status = loadError ? 500 : 404;
+const isPhoto = (value: unknown): value is string => typeof value === 'string' && (/^data:image\//.test(value) || /^https:\/\//.test(value));
+const cover = project && Array.isArray(project.sitePhotos) ? project.sitePhotos.find(isPhoto) || MOCK_PHOTO : MOCK_PHOTO;
+const statusKey = project && STATUS_LABELS[project.status || ''] ? project.status as string : 'planned';
+const levelKey = project && LEVEL_LABELS[project.workLevel || ''] ? project.workLevel as string : 'medium';
+const toInputDate = (value: unknown) => {
+  if (!value) return '';
+  const text = String(value);
+  return text.includes('T') ? text.slice(0, 16) : `${text.slice(0, 10)}T00:00`;
+};
+---
+<BaseLayout title={project?.name || 'รายละเอียดโครงการ'} role="contractor">
+  <div class="mobile-page contractor-project-page">
+    <header class="mobile-header">
+      <a href="/contractor?section=projects" class="back-btn" aria-label="กลับไปโครงการของฉัน"><i class="fa-solid fa-arrow-left"></i></a>
+      <div><h1>รายละเอียดโครงการ</h1><small>{project ? `โครงการเลขที่ ${project.id}` : 'ไม่พบโครงการ'}</small></div>
+      <button id="logoutBtn" type="button" class="back-btn" aria-label="ออกจากระบบ" style="margin-left:auto"><i class="fa-solid fa-right-from-bracket"></i></button>
+    </header>
+
+    {!project ? (
+      <main class="mobile-content contractor-project-main">
+        <section class="card report-not-found">
+          <i class="fa-solid fa-file-circle-xmark" style="font-size:2.4rem;color:var(--amber)"></i>
+          <h2>{loadError || 'ไม่พบโครงการ หรือคุณไม่มีสิทธิ์เข้าถึง'}</h2>
+          <a class="big-action contractor-back-link" href="/contractor?section=projects">กลับไปโครงการของฉัน</a>
+        </section>
+      </main>
+    ) : (
+      <main class="mobile-content contractor-project-main">
+        <section class="contractor-project-hero card glass-panel">
+          <img src={cover} alt={`รูปหน้างาน ${project.name || ''}`}>
+          <div class="contractor-project-heading">
+            <div class="report-heading-meta">
+              <span class={`report-meta-chip report-level-chip level-${levelKey}`}><i class="fa-solid fa-layer-group"></i> {LEVEL_LABELS[levelKey]}</span>
+              <span class="report-meta-chip"><i class="fa-solid fa-helmet-safety"></i> {STATUS_LABELS[statusKey]}</span>
+            </div>
+            <h2>{project.name}</h2>
+            <p><i class="fa-solid fa-road"></i> {project.roadName || '-'} · {project.province || '-'}</p>
+          </div>
+        </section>
+
+        <form class="card glass-panel contractor-project-form" id="contractorProjectForm">
+          <div class="contractor-form-title"><div><p class="eyebrow">EDIT PROJECT</p><h2>แก้ไขข้อมูลโครงการ</h2></div><i class="fa-solid fa-pen-to-square"></i></div>
+          <div class="card-grid">
+            <label><span>ชื่องาน</span><input name="name" value={project.name || ''} required></label>
+            <div class="card-grid two">
+              <label><span>ประเภทงาน</span><input name="workType" value={project.workType || ''}></label>
+              <label><span>สถานะ</span><select name="status"><option value="in-progress" selected={statusKey === 'in-progress'}>กำลังทำ</option><option value="delayed" selected={statusKey === 'delayed'}>ล่าช้า</option><option value="planned" selected={statusKey === 'planned'}>วางแผน</option><option value="completed" selected={statusKey === 'completed'}>เสร็จสิ้น</option></select></label>
+            </div>
+            <label><span>ระดับงานก่อสร้าง</span><select name="workLevel"><option value="critical" selected={levelKey === 'critical'}>ระดับ 1 — วิกฤต</option><option value="high" selected={levelKey === 'high'}>ระดับ 2 — สูง</option><option value="medium" selected={levelKey === 'medium'}>ระดับ 3 — ปานกลาง</option><option value="routine" selected={levelKey === 'routine'}>ระดับ 4 — ทั่วไป</option></select></label>
+            <label><span>ถนน</span><input name="roadName" value={project.roadName || ''}></label>
+            <div class="card-grid two">
+              <label><span>ละติจูด</span><input name="lat" type="number" step="0.000001" value={project.lat}></label>
+              <label><span>ลองจิจูด</span><input name="lng" type="number" step="0.000001" value={project.lng}></label>
+            </div>
+            <div class="card-grid two">
+              <label><span>เริ่มงาน</span><input name="start" type="datetime-local" value={toInputDate(project.start)}></label>
+              <label><span>สิ้นสุด</span><input name="end" type="datetime-local" value={toInputDate(project.end)}></label>
+            </div>
+            <label><span>ขอบเขต (เมตร)</span><input name="boundaryMeters" type="number" min="40" max="900" step="10" value={project.boundaryMeters || 280}></label>
+            <label><span>หมายเหตุ</span><textarea name="statusNote" rows="3">{project.statusNote || ''}</textarea></label>
+          </div>
+          <p class="contractor-form-message" id="contractorProjectMessage" role="status" aria-live="polite"></p>
+          <div class="contractor-project-actions">
+            <button class="big-action" id="saveContractorProject" type="submit"><i class="fa-solid fa-floppy-disk"></i> บันทึกการแก้ไข</button>
+            <button class="contractor-delete-action" id="deleteContractorProject" type="button"><i class="fa-solid fa-trash"></i> ลบโครงการ</button>
+          </div>
+        </form>
+      </main>
+    )}
+  </div>
+
+  {project && <script is:inline define:vars={{ projectId: project.id }}>
+    const form = document.getElementById('contractorProjectForm');
+    const message = document.getElementById('contractorProjectMessage');
+    const saveButton = document.getElementById('saveContractorProject');
+    const deleteButton = document.getElementById('deleteContractorProject');
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      const payload = {
+        id: projectId,
+        name: String(data.get('name') || '').trim(),
+        workType: String(data.get('workType') || '').trim(),
+        status: String(data.get('status') || 'planned'),
+        workLevel: String(data.get('workLevel') || 'medium'),
+        roadName: String(data.get('roadName') || '').trim(),
+        lat: Number(data.get('lat')),
+        lng: Number(data.get('lng')),
+        start: String(data.get('start') || ''),
+        end: String(data.get('end') || ''),
+        boundaryMeters: Number(data.get('boundaryMeters')),
+        statusNote: String(data.get('statusNote') || '').trim(),
+      };
+      if (!payload.name || !Number.isFinite(payload.lat) || !Number.isFinite(payload.lng)) {
+        message.textContent = 'กรุณากรอกชื่อโครงการและพิกัดให้ถูกต้อง';
+        message.className = 'contractor-form-message error';
+        return;
+      }
+      saveButton.disabled = true;
+      message.textContent = 'กำลังบันทึก...';
+      message.className = 'contractor-form-message';
+      try {
+        const response = await fetch('/api/projects', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'บันทึกไม่สำเร็จ');
+        message.textContent = 'บันทึกการแก้ไขเรียบร้อยแล้ว';
+        message.className = 'contractor-form-message success';
+        window.setTimeout(() => window.location.reload(), 650);
+      } catch (error) {
+        message.textContent = error.message;
+        message.className = 'contractor-form-message error';
+        saveButton.disabled = false;
+      }
+    });
+    deleteButton?.addEventListener('click', async () => {
+      const confirmed = window.confirm('ต้องการลบโครงการนี้ใช่หรือไม่? การลบไม่สามารถย้อนกลับได้');
+      if (!confirmed) return;
+      deleteButton.disabled = true;
+      saveButton.disabled = true;
+      message.textContent = 'กำลังลบโครงการ...';
+      message.className = 'contractor-form-message';
+      try {
+        const response = await fetch('/api/projects', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: projectId }) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'ลบไม่สำเร็จ');
+        window.location.href = '/contractor?section=projects';
+      } catch (error) {
+        message.textContent = error.message;
+        message.className = 'contractor-form-message error';
+        deleteButton.disabled = false;
+        saveButton.disabled = false;
+      }
+    });
+  </script>}
+</BaseLayout>

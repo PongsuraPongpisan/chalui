@@ -231,6 +231,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         document.getElementById(btn.dataset.section).classList.remove('section-hidden');
       });
     });
+    if (new URLSearchParams(window.location.search).get('section') === 'projects') {
+      document.querySelector('.mobile-bottom-nav [data-section="sec-projects"]')?.click();
+    }
 
     // Keep the polished level cards synchronized with the original select value.
     const constructionLevelSelect = document.getElementById('constructionWorkLevel');

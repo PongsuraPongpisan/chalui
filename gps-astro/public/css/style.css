@@ -3645,3 +3645,194 @@ body.lightbox-open {
   .construction-level-options { grid-template-columns: 1fr; }
   .construction-level-option { min-height: 82px; }
 }
+
+/* Contractor levels use the exact Admin palette (specificity fixes picker fallback override). */
+.construction-level-option.level-critical { --level-color: #dc2626; }
+.construction-level-option.level-high { --level-color: #f59e0b; }
+.construction-level-option.level-medium { --level-color: #eab308; }
+.construction-level-option.level-routine { --level-color: #22c55e; }
+
+/* Natural document scrolling for Contractor pages, especially My Projects on mobile. */
+body[data-role="contractor"] {
+  height: auto;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+body[data-role="contractor"] .mobile-page {
+  height: auto;
+  min-height: 100dvh;
+  overflow: visible;
+}
+
+body[data-role="contractor"] .mobile-content {
+  min-height: 0;
+  overflow: visible;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  touch-action: pan-y;
+}
+
+body[data-role="contractor"] #sec-projects,
+body[data-role="contractor"] #projectList {
+  max-height: none;
+  overflow: visible;
+  overscroll-behavior: auto;
+}
+
+body[data-role="contractor"] .mini-map .leaflet-container {
+  touch-action: pan-y !important;
+}
+
+.contractor-project-link {
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.contractor-project-card {
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.contractor-project-card:hover,
+.contractor-project-card:focus-within {
+  transform: translateY(-2px);
+  border-color: #1f9a9a;
+  box-shadow: 0 8px 20px rgba(21, 56, 42, 0.11);
+}
+
+.contractor-project-card-main {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.contractor-project-card-main .construction-level-badge {
+  font-size: 0.68rem;
+}
+
+.contractor-project-card-side {
+  display: grid;
+  align-self: stretch;
+  justify-items: end;
+  align-content: space-between;
+  gap: 10px;
+}
+
+.contractor-project-card-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.contractor-project-edit,
+.contractor-project-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  gap: 5px;
+  padding: 6px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.contractor-project-edit:hover { border-color: #1f9a9a; color: #0f766e; }
+.contractor-project-delete { border-color: #fecaca; color: #b91c1c; }
+.contractor-project-delete:hover { border-color: #dc2626; background: #fef2f2; }
+.contractor-project-delete:disabled { cursor: wait; opacity: 0.55; }
+
+@media (max-width: 430px) {
+  .contractor-project-card {
+    grid-template-columns: 8px minmax(0, 1fr);
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .contractor-project-card .status-stripe {
+    width: 8px;
+    height: auto;
+    min-height: 100%;
+  }
+
+  .contractor-project-card-side {
+    grid-column: 2;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    justify-items: start;
+  }
+
+  .contractor-project-card-actions { justify-self: end; }
+  .contractor-project-edit,
+  .contractor-project-delete { min-height: 38px; }
+}
+
+.contractor-project-page {
+  max-width: none;
+  background: #f4f7f4;
+}
+
+.contractor-project-main {
+  width: min(100%, 840px);
+  margin: 0 auto;
+  gap: 16px;
+  padding-bottom: max(40px, env(safe-area-inset-bottom));
+}
+
+.contractor-project-hero {
+  overflow: hidden;
+  padding: 0;
+}
+
+.contractor-project-hero > img {
+  width: 100%;
+  height: clamp(210px, 38vw, 340px);
+  display: block;
+  object-fit: cover;
+}
+
+.contractor-project-heading { padding: 18px; }
+.contractor-project-heading h2 { margin: 12px 0 5px; font-size: clamp(1.2rem, 3vw, 1.65rem); }
+.contractor-project-heading p { margin: 0; color: var(--muted); font-size: 0.82rem; }
+
+.contractor-project-form { display: grid; gap: 16px; }
+.contractor-form-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.contractor-form-title .eyebrow { margin: 0; color: var(--teal); font-size: 0.68rem; font-weight: 800; }
+.contractor-form-title h2 { margin: 2px 0 0; font-size: 1.05rem; }
+.contractor-form-title > i { color: var(--amber); font-size: 1.2rem; }
+
+.contractor-project-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+.contractor-delete-action {
+  min-height: 52px;
+  padding: 0 18px;
+  border: 1px solid #dc2626;
+  border-radius: 12px;
+  background: #fff;
+  color: #b91c1c;
+  font-weight: 800;
+  cursor: pointer;
+}
+.contractor-delete-action:disabled,
+.contractor-project-actions button:disabled { cursor: wait; opacity: 0.6; }
+.contractor-form-message { min-height: 20px; margin: 0; color: var(--muted); font-size: 0.78rem; }
+.contractor-form-message.success { color: #15803d; }
+.contractor-form-message.error { color: #b91c1c; }
+.contractor-back-link { display: inline-flex; width: auto; text-decoration: none; }
+
+@media (max-width: 560px) {
+  .contractor-project-main { padding-inline: 12px; }
+  .contractor-project-actions { grid-template-columns: 1fr; }
+  .contractor-delete-action { width: 100%; }
+  .contractor-project-form .card-grid.two { grid-template-columns: 1fr; }
+}

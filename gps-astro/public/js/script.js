@@ -221,7 +221,7 @@ async function syncWithServer() {
     const resProjects = await fetch('/api/projects');
     if (resProjects.ok) {
       const data = await resProjects.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data) && (data.length > 0 || window.APP_ROLE === "contractor")) {
         projects.length = 0;
         projects.push(...data);
         if (typeof hydrateProjectDetails === "function") hydrateProjectDetails();
@@ -868,6 +868,8 @@ function renderRouteResult(origin, destination, estimate) {
 function visibleProjects() {
   const term = searchInput ? searchInput.value.trim().toLowerCase() : "";
   return projects.filter((project) => {
+    // Contractor "My projects" contains only reports submitted through the contractor account.
+    if (window.APP_ROLE === "contractor" && project.contractor !== "User submitted") return false;
     // Closed Loop: hide zones that failed compliance (not published to drivers)
     const published = (typeof window.AiAuditor !== 'undefined' && window.AiAuditor.isZonePublished)
       ? window.AiAuditor.isZonePublished(project)
@@ -1832,23 +1834,85 @@ async function handleReportImageUpload(event) {
   }
 }
 
+async function deleteContractorProjectFromList(project, button) {
+  const confirmed = window.confirm(`ต้องการลบโครงการ “${project.name}” ใช่หรือไม่? การลบไม่สามารถย้อนกลับได้`);
+  if (!confirmed) return;
+
+  button.disabled = true;
+  try {
+    const response = await fetch('/api/projects', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: project.id })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'ลบโครงการไม่สำเร็จ');
+
+    const projectIndex = projects.findIndex((item) => String(item.id) === String(project.id));
+    if (projectIndex >= 0) projects.splice(projectIndex, 1);
+    if (String(selectedProjectId) === String(project.id)) selectedProjectId = null;
+    renderSummary();
+    renderAll();
+    showToast('ลบโครงการเรียบร้อยแล้ว');
+  } catch (error) {
+    button.disabled = false;
+    showToast(error.message || 'ลบโครงการไม่สำเร็จ');
+  }
+}
+
 function renderList() {
   if (!projectList) return;
   const items = visibleProjects();
   projectList.innerHTML = "";
 
   if (!items.length) {
-    projectList.innerHTML = '<div class="empty-state">No projects found</div>';
+    projectList.innerHTML = '<div class="empty-state">ยังไม่มีโครงการ</div>';
     return;
   }
 
   for (const project of items) {
-    const status = statuses[project.status];
-    const button = document.createElement("button");
-    button.className = `project-card ${selectedProjectId === project.id ? "active" : ""}`;
-    button.type = "button";
-    button.dataset.projectId = project.id;
-    button.innerHTML = `
+    const status = statuses[project.status] || statuses.planned;
+    const isContractorProject = window.APP_ROLE === "contractor";
+    const levelKey = WORK_LEVEL_META[project.workLevel] ? project.workLevel : "medium";
+    const level = WORK_LEVEL_META[levelKey];
+
+    if (isContractorProject) {
+      const projectHref = `/contractor/projects/${encodeURIComponent(String(project.id))}`;
+      const card = document.createElement("article");
+      card.className = `project-card contractor-project-card ${selectedProjectId === project.id ? "active" : ""}`;
+      card.dataset.projectId = project.id;
+      card.innerHTML = `
+        <span class="status-stripe status-${project.status}"></span>
+        <a class="contractor-project-link contractor-project-card-main" href="${projectHref}" aria-label="ดูรายละเอียดโครงการ ${displayBilingualText(project.name)}">
+          <span>
+            <h2>${displayBilingualText(project.name)}</h2>
+            <span class="project-meta">
+              <span><i class="fa-solid fa-road"></i> ${displayPlaceName(project.roadName)}</span>
+              <span><i class="fa-solid fa-location-dot"></i> ${displayPlaceName(project.province)}</span>
+            </span>
+          </span>
+          <span class="construction-level-badge level-${levelKey}">${level.icon} ${level.code} · ${level.label}</span>
+        </a>
+        <span class="contractor-project-card-side">
+          <span class="status-label status-${project.status}">${status.label}</span>
+          <span class="contractor-project-card-actions">
+            <a class="contractor-project-edit" href="${projectHref}#contractorProjectForm"><i class="fa-solid fa-pen"></i> แก้ไข</a>
+            <button class="contractor-project-delete" type="button" aria-label="ลบโครงการ ${displayBilingualText(project.name)}"><i class="fa-solid fa-trash"></i> ลบ</button>
+          </span>
+        </span>
+      `;
+      card.querySelector('.contractor-project-delete')?.addEventListener('click', (event) => {
+        deleteContractorProjectFromList(project, event.currentTarget);
+      });
+      projectList.appendChild(card);
+      continue;
+    }
+
+    const card = document.createElement("button");
+    card.className = `project-card ${selectedProjectId === project.id ? "active" : ""}`;
+    card.type = "button";
+    card.dataset.projectId = project.id;
+    card.innerHTML = `
       <span class="status-stripe status-${project.status}"></span>
       <span>
         <h2>${displayBilingualText(project.name)}</h2>
@@ -1859,8 +1923,8 @@ function renderList() {
       </span>
       <span class="status-label status-${project.status}">${status.label}</span>
     `;
-    button.addEventListener("click", () => selectProject(project.id, true));
-    projectList.appendChild(button);
+    card.addEventListener("click", () => selectProject(project.id, true));
+    projectList.appendChild(card);
   }
 }
 
@@ -1980,7 +2044,7 @@ async function calculateRoute() {
   return activeRoute;
 }
 
-function addConstructionProject() {
+async function addConstructionProject() {
   const roadSelect = document.getElementById("constructionRoad");
   const anchor = roadAnchors[Number(roadSelect.value)] || roadAnchors[0];
   const name = document.getElementById("constructionName").value.trim();
@@ -2021,7 +2085,8 @@ function addConstructionProject() {
     return;
   }
 
-  const nextId = Math.max(...projects.map((project) => project.id)) + 1;
+  const existingIds = projects.map((item) => Number(item.id)).filter(Number.isSafeInteger);
+  const nextId = existingIds.length ? Math.max(...existingIds) + 1 : Date.now();
   const project = {
     id: nextId,
     name,
@@ -2050,27 +2115,37 @@ function addConstructionProject() {
     checkpointPhotos: (typeof window !== "undefined" && window.checkpointPhotos) ? window.checkpointPhotos : {}
   };
 
-  projects.push(project);
+  const addButton = document.getElementById('addConstruction');
+  if (addButton) addButton.disabled = true;
 
-  // Post project to Astro Central Server
-  fetch('/api/projects', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(project)
-  }).then(() => {
-    syncWithServer();
-  }).catch(err => console.error("Failed to post project to server:", err));
+  let savedProject;
+  try {
+    const response = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(project)
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'เพิ่มโครงการไม่สำเร็จ');
+    savedProject = result.project || project;
+  } catch (error) {
+    if (addButton) addButton.disabled = false;
+    showToast(error.message || 'เพิ่มโครงการไม่สำเร็จ');
+    return;
+  }
 
-  selectedProjectId = project.id;
+  projects.push(savedProject);
+  selectedProjectId = savedProject.id;
   activeFilter = "all";
   document.querySelectorAll(".filter-chip").forEach((button) => {
     button.classList.toggle("active", button.dataset.filter === "all");
   });
   renderSummary();
   renderAll();
-  selectProject(project.id, true);
-  openProjectDetail(project);
-  showToast(`Added: ${project.name}`);
+  selectProject(savedProject.id, true);
+  openProjectDetail(savedProject);
+  showToast(`เพิ่มโครงการแล้ว: ${savedProject.name}`);
+  if (addButton) addButton.disabled = false;
 
   // Reset the site-overview photo picker and 8-checkpoint photo picker for the next submission
   if (typeof window !== "undefined") {
