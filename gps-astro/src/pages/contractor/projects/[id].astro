@@ -11,7 +11,7 @@ type Project = Record<string, unknown> & {
   id: number; name?: string; province?: string; contractor?: string; status?: string;
   workLevel?: string; roadName?: string; lat?: number; lng?: number;
   boundaryMeters?: number; start?: string; end?: string; workType?: string;
-  statusNote?: string; sitePhotos?: unknown; checkpointPhotos?: Record<string, unknown>;
+  statusNote?: string; completed_at?: string; sitePhotos?: unknown; checkpointPhotos?: Record<string, unknown>;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -60,6 +60,40 @@ const localizedWorkType = localizeWorkType(project?.workType);
 const localizedRoad = localizeRoad(project?.roadName);
 const statusKey = project && STATUS_LABELS[project.status || ''] ? project.status as string : 'planned';
 const levelKey = project && LEVEL_LABELS[project.workLevel || ''] ? project.workLevel as string : 'medium';
+const isCompleted = statusKey === 'completed';
+const parseProjectDate = (value: unknown) => {
+  if (!value) return null;
+  const text = String(value).trim();
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(text)
+    ? `${text}T00:00:00+07:00`
+    : (/[zZ]$|[+-]\d{2}:\d{2}$/.test(text) ? text : `${text}+07:00`);
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+const formatBangkokDateTime = (value: unknown) => {
+  const date = parseProjectDate(value);
+  return date ? new Intl.DateTimeFormat('th-TH', {
+    timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'medium',
+  }).format(date) : '-';
+};
+const formatDuration = (milliseconds: number) => {
+  const totalMinutes = Math.floor(Math.abs(milliseconds) / 60000);
+  if (totalMinutes < 1) return 'น้อยกว่า 1 นาที';
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  return [days && `${days} วัน`, hours && `${hours} ชั่วโมง`, minutes && `${minutes} นาที`].filter(Boolean).join(' ');
+};
+const completedDate = parseProjectDate(project?.completed_at);
+const plannedEndDate = parseProjectDate(project?.end);
+const scheduleDelta = completedDate && plannedEndDate ? completedDate.getTime() - plannedEndDate.getTime() : null;
+const scheduleResult = scheduleDelta === null
+  ? { className: 'unknown', text: isCompleted ? 'ไม่สามารถคำนวณได้ เนื่องจากไม่มีเวลาปิดงานหรือเวลาสิ้นสุดตามแผน' : '-' }
+  : scheduleDelta === 0
+    ? { className: 'on-time', text: 'เสร็จตรงตามกำหนด' }
+    : scheduleDelta < 0
+      ? { className: 'early', text: `เสร็จก่อนกำหนด ${formatDuration(scheduleDelta)}` }
+      : { className: 'late', text: `เสร็จล่าช้ากว่ากำหนด ${formatDuration(scheduleDelta)}` };
 const toInputDate = (value: unknown) => {
   if (!value) return '';
   const text = String(value);
@@ -110,13 +144,16 @@ const toInputDate = (value: unknown) => {
             <dt>จังหวัด</dt><dd>{project.province || '-'}</dd>
             <dt>สถานะ</dt><dd>{STATUS_LABELS[statusKey]}</dd>
             <dt>ระดับงาน</dt><dd>{LEVEL_LABELS[levelKey]}</dd>
+            <dt>สิ้นสุดตามแผน</dt><dd>{formatBangkokDateTime(project.end)}</dd>
+            {isCompleted && <><dt>เสร็จสิ้นจริง</dt><dd>{formatBangkokDateTime(project.completed_at)}</dd></>}
+            {isCompleted && <><dt>เทียบกับแผน</dt><dd><span class={`completion-timing ${scheduleResult.className}`}>{scheduleResult.text}</span></dd></>}
             <dt>หมายเหตุ</dt><dd>{project.statusNote || '-'}</dd>
           </dl>
         </section>
 
         <section class="report-section report-detail-card glass-panel" aria-labelledby="contractor-checkpoint-title">
           <h2 class="report-section-title" id="contractor-checkpoint-title"><i class="fa-solid fa-list-check"></i> รูปตรวจมาตรฐาน 8 จุดสำคัญ</h2>
-          <p class="contractor-gallery-help">แตะรูปเพื่อเปิดอัลบั้ม หรือแตะช่องว่างเพื่อเพิ่มรูปจากกล้องและคลังภาพ</p>
+          <p class="contractor-gallery-help">{isCompleted ? 'โครงการเสร็จสิ้นแล้ว รูปทั้งหมดเป็นแบบอ่านอย่างเดียว' : 'แตะรูปเพื่อเปิดอัลบั้ม หรือแตะช่องว่างเพื่อเพิ่มรูปจากกล้องและคลังภาพ'}</p>
           <div class="checkpoint-albums-grid">
             {CHECKPOINT_META.map((meta) => {
               const photos = checkpointPhotos[meta.key];
@@ -126,6 +163,12 @@ const toInputDate = (value: unknown) => {
                   <div class="checkpoint-album-strip" data-contractor-checkpoint={meta.key} aria-label={`อัลบั้ม${meta.label}`}>
                     {photos.map((src, index) => <button class="checkpoint-photo-button" type="button" data-contractor-photo-index={index} aria-label={`ขยายรูป ${meta.label} รูปที่ ${index + 1}`}><img src={src} alt={`${meta.label} รูปที่ ${index + 1}`} loading="lazy"></button>)}
                   </div>
+                ) : isCompleted ? (
+                  <div class="checkpoint-photo-placeholder is-locked" aria-label={`${meta.label} ไม่มีรูปแนบ`}>
+                    <i class="fa-solid fa-lock"></i>
+                    <span>ไม่มีรูปแนบ</span>
+                    <small>โครงการเสร็จสิ้นและถูกล็อกแล้ว</small>
+                  </div>
                 ) : (
                   <button class="checkpoint-photo-placeholder" type="button" data-checkpoint-upload-trigger={meta.key} data-upload-source="gallery" aria-label={`เลือกรูปสำหรับ${meta.label}`}>
                     <i class="fa-regular fa-image"></i>
@@ -133,20 +176,23 @@ const toInputDate = (value: unknown) => {
                     <small>เลือกจากคลังภาพหรือใช้ปุ่มถ่ายรูปด้านล่าง</small>
                   </button>
                 )}
-                <div class="contractor-checkpoint-upload-actions">
-                  <button type="button" class="contractor-checkpoint-upload-button camera" data-checkpoint-upload-trigger={meta.key} data-upload-source="camera"><i class="fa-solid fa-camera"></i> ถ่ายรูป</button>
-                  <button type="button" class="contractor-checkpoint-upload-button gallery" data-checkpoint-upload-trigger={meta.key} data-upload-source="gallery"><i class="fa-solid fa-images"></i> เลือกรูป</button>
-                </div>
-                <input class="visually-hidden contractor-checkpoint-input" id={`contractor-${meta.key}-camera`} type="file" accept="image/*" capture="environment" data-checkpoint-key={meta.key}>
-                <input class="visually-hidden contractor-checkpoint-input" id={`contractor-${meta.key}-gallery`} type="file" accept="image/*" multiple data-checkpoint-key={meta.key}>
-                <p class="contractor-checkpoint-upload-status" data-checkpoint-status={meta.key} role="status" aria-live="polite"></p>
+                {!isCompleted && <>
+                  <div class="contractor-checkpoint-upload-actions">
+                    <button type="button" class="contractor-checkpoint-upload-button camera" data-checkpoint-upload-trigger={meta.key} data-upload-source="camera"><i class="fa-solid fa-camera"></i> ถ่ายรูป</button>
+                    <button type="button" class="contractor-checkpoint-upload-button gallery" data-checkpoint-upload-trigger={meta.key} data-upload-source="gallery"><i class="fa-solid fa-images"></i> เลือกรูป</button>
+                  </div>
+                  <input class="visually-hidden contractor-checkpoint-input" id={`contractor-${meta.key}-camera`} type="file" accept="image/*" capture="environment" data-checkpoint-key={meta.key}>
+                  <input class="visually-hidden contractor-checkpoint-input" id={`contractor-${meta.key}-gallery`} type="file" accept="image/*" multiple data-checkpoint-key={meta.key}>
+                  <p class="contractor-checkpoint-upload-status" data-checkpoint-status={meta.key} role="status" aria-live="polite"></p>
+                </>}
               </section>;
             })}
           </div>
         </section>
 
-        <form class="card glass-panel contractor-project-form" id="contractorProjectForm">
-          <div class="contractor-form-title"><div><p class="eyebrow">EDIT PROJECT</p><h2>แก้ไขข้อมูลโครงการ</h2></div><i class="fa-solid fa-pen-to-square"></i></div>
+        <form class:list={{ 'card glass-panel contractor-project-form': true, 'is-readonly': isCompleted }} id="contractorProjectForm">
+          <div class="contractor-form-title"><div><p class="eyebrow">{isCompleted ? 'READ ONLY' : 'EDIT PROJECT'}</p><h2>{isCompleted ? 'โครงการเสร็จสิ้นและล็อกแล้ว' : 'แก้ไขข้อมูลโครงการ'}</h2></div><i class={`fa-solid ${isCompleted ? 'fa-lock' : 'fa-pen-to-square'}`}></i></div>
+          <fieldset class="contractor-project-fieldset" disabled={isCompleted}>
           <div class="card-grid">
             <label><span>ชื่องาน</span><input name="name" value={project.name || ''} required></label>
             <div class="card-grid two">
@@ -169,11 +215,17 @@ const toInputDate = (value: unknown) => {
             <label><span>ขอบเขต (เมตร)</span><input name="boundaryMeters" type="number" min="40" max="900" step="10" value={project.boundaryMeters || 280}></label>
             <label><span>หมายเหตุ</span><textarea name="statusNote" rows="3">{project.statusNote || ''}</textarea></label>
           </div>
+          </fieldset>
+          <p class="completion-warning" id="completionWarning" hidden={!isCompleted}><i class="fa-solid fa-triangle-exclamation"></i> ไม่สามารถแก้ไขข้อมูลได้หลังจากเลือกสถานะเสร็จสิ้นงาน</p>
           <p class="contractor-form-message" id="contractorProjectMessage" role="status" aria-live="polite"></p>
-          <div class="contractor-project-actions">
-            <button class="big-action" id="saveContractorProject" type="submit"><i class="fa-solid fa-floppy-disk"></i> บันทึกการแก้ไข</button>
-            <button class="contractor-delete-action" id="deleteContractorProject" type="button"><i class="fa-solid fa-trash"></i> ลบโครงการ</button>
-          </div>
+          {isCompleted ? (
+            <div class="completion-locked-notice"><i class="fa-solid fa-lock"></i><span>ข้อมูลโครงการนี้ถูกล็อกถาวรแล้ว</span></div>
+          ) : (
+            <div class="contractor-project-actions">
+              <button class="big-action" id="saveContractorProject" type="submit"><i class="fa-solid fa-floppy-disk"></i> บันทึกการแก้ไข</button>
+              <button class="contractor-delete-action" id="deleteContractorProject" type="button"><i class="fa-solid fa-trash"></i> ลบโครงการ</button>
+            </div>
+          )}
         </form>
       </main>
     )}
@@ -189,11 +241,16 @@ const toInputDate = (value: unknown) => {
     </div>
   )}
 
-  {project && <script is:inline define:vars={{ projectId: project.id, checkpointGalleryData: checkpointPhotos, siteGalleryData: siteGalleryPhotos }}>
+  {project && <script is:inline define:vars={{ projectId: project.id, projectIsCompleted: isCompleted, checkpointGalleryData: checkpointPhotos, siteGalleryData: siteGalleryPhotos }}>
     const form = document.getElementById('contractorProjectForm');
     const message = document.getElementById('contractorProjectMessage');
     const saveButton = document.getElementById('saveContractorProject');
     const deleteButton = document.getElementById('deleteContractorProject');
+    const statusSelect = form?.querySelector('select[name="status"]');
+    const completionWarning = document.getElementById('completionWarning');
+    statusSelect?.addEventListener('change', () => {
+      if (completionWarning) completionWarning.hidden = statusSelect.value !== 'completed';
+    });
     const lightbox = document.getElementById('contractorProjectLightbox');
     const lightboxImage = document.getElementById('contractorProjectLightboxImg');
     const lightboxCounter = document.getElementById('contractorProjectLightboxCounter');
@@ -405,6 +462,7 @@ const toInputDate = (value: unknown) => {
 
     form?.addEventListener('submit', async (event) => {
       event.preventDefault();
+      if (projectIsCompleted) return;
       const data = new FormData(form);
       const payload = {
         id: projectId,
@@ -423,6 +481,9 @@ const toInputDate = (value: unknown) => {
       if (!payload.name || !Number.isFinite(payload.lat) || !Number.isFinite(payload.lng)) {
         message.textContent = 'กรุณากรอกชื่อโครงการและพิกัดให้ถูกต้อง';
         message.className = 'contractor-form-message error';
+        return;
+      }
+      if (payload.status === 'completed' && !window.confirm('ยืนยันสถานะเสร็จสิ้นงาน? หลังบันทึกแล้วจะไม่สามารถแก้ไข อัปโหลดรูป หรือลบโครงการได้')) {
         return;
       }
       saveButton.disabled = true;

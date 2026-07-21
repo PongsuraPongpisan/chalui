@@ -181,11 +181,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <section id="sec-projects" class="section-hidden">
         <div class="card glass-panel" style="border-left: 4px solid var(--blue);">
           <h3 style="color: var(--blue);"><i class="fa-solid fa-list"></i> โครงการของฉัน</h3>
-          <div class="filter-row" role="tablist">
+          <div class="filter-row contractor-project-filters" role="tablist">
             <button class="filter-chip active" data-filter="all" type="button">ทั้งหมด</button>
             <button class="filter-chip" data-filter="in-progress" type="button">กำลังทำ</button>
             <button class="filter-chip" data-filter="delayed" type="button">ล่าช้า</button>
             <button class="filter-chip" data-filter="planned" type="button">วางแผน</button>
+            <button class="filter-chip" data-filter="completed" type="button">เสร็จสิ้น</button>
           </div>
           <section class="project-list" id="projectList" style="margin-top:12px"></section>
         </div>

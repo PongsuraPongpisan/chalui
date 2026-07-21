@@ -3984,6 +3984,91 @@ body[data-role="contractor"] .mini-map .leaflet-container {
   .contractor-project-delete { min-height: 38px; }
 }
 
+.contractor-project-filters {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.completion-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid #facc15;
+  border-radius: 10px;
+  background: #fefce8;
+  color: #854d0e;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.completion-warning[hidden] { display: none; }
+.completion-warning i { margin-top: 2px; color: #eab308; }
+
+.contractor-project-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.contractor-project-form.is-readonly .contractor-project-fieldset { opacity: 0.72; }
+.contractor-project-form.is-readonly input,
+.contractor-project-form.is-readonly select,
+.contractor-project-form.is-readonly textarea { cursor: not-allowed; }
+
+.completion-locked-notice,
+.contractor-project-locked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #166534;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.completion-locked-notice {
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid #86efac;
+  border-radius: 11px;
+  background: #f0fdf4;
+}
+
+.contractor-project-locked {
+  padding: 6px 9px;
+  border-radius: 9px;
+  background: #dcfce7;
+}
+
+.completion-timing {
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+.completion-timing.early { background: #dcfce7; color: #166534; }
+.completion-timing.late { background: #fee2e2; color: #b91c1c; }
+.completion-timing.on-time { background: #dbeafe; color: #1d4ed8; }
+.completion-timing.unknown { background: #f1f5f9; color: #64748b; }
+
+.checkpoint-photo-placeholder.is-locked {
+  cursor: default;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+@media (max-width: 430px) {
+  .contractor-project-filters {
+    grid-template-columns: repeat(5, minmax(78px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+}
+
 .contractor-project-page {
   max-width: none;
   background: #f4f7f4;

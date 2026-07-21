@@ -8,6 +8,12 @@ function json(payload, status = 200) {
   return new Response(JSON.stringify(payload), { status, headers: { "Content-Type": "application/json" } });
 }
 
+const VALID_STATUSES = new Set(["planned", "in-progress", "delayed", "completed"]);
+
+function isCompletionLocked(row) {
+  return row.status === "completed" || Boolean(row.extra?.completed_at);
+}
+
 function getEditor(cookies) {
   const session = getSession(cookies);
   return session && (session.role === "admin" || session.role === "contractor") ? session : null;
@@ -53,6 +59,8 @@ export async function POST({ request, cookies }) {
 
   try {
     const project = await request.json();
+    if (!VALID_STATUSES.has(project.status)) return json({ error: "Invalid project status" }, 400);
+    delete project.completed_at;
     const row = clientToRow(project);
     const requestedId = Number(project.id);
     const needsServerId = session.role === "contractor" || !Number.isSafeInteger(requestedId) || requestedId < 1;
@@ -71,6 +79,9 @@ export async function POST({ request, cookies }) {
     if (session.role === "contractor") {
       row.contractor = "User submitted";
       row.extra = { ...(row.extra || {}), ownerUsername: session.username };
+    }
+    if (row.status === "completed") {
+      row.extra = { ...(row.extra || {}), completed_at: new Date().toISOString() };
     }
 
     const { data, error } = await supabase
@@ -110,29 +121,40 @@ export async function PUT({ request, cookies }) {
         headers: { "Content-Type": "application/json" },
       });
     }
+    if (project.status !== undefined && !VALID_STATUSES.has(project.status)) {
+      return json({ error: "Invalid project status" }, 400);
+    }
+    delete project.completed_at;
 
     // Merge extra fields with the existing row's extra instead of overwriting it,
     // so partial updates don't wipe photos or ownership metadata.
     const { data: existing, error: existingError } = await supabase
       .from("projects")
-      .select("contractor, extra")
+      .select("contractor, status, extra")
       .eq("legacy_id", project.id)
       .single();
 
     if (existingError || !existing) return json({ error: "Project not found" }, 404);
     if (!canModify(session, existing)) return json({ error: "Forbidden" }, 403);
+    if (isCompletionLocked(existing)) {
+      return json({ error: "Completed projects are permanently locked" }, 409);
+    }
 
     const row = clientToRow(project);
-    if (row.extra && existing.extra) {
-      row.extra = { ...existing.extra, ...row.extra };
+    if (row.extra || project.status === "completed") {
+      row.extra = { ...(existing.extra || {}), ...(row.extra || {}) };
+    }
+    if (project.status === "completed") {
+      row.extra = { ...(row.extra || existing.extra || {}), completed_at: new Date().toISOString() };
     }
 
     const { data, error } = await supabase
       .from("projects")
       .update(row)
       .eq("legacy_id", project.id)
+      .neq("status", "completed")
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       const status = error.code === "PGRST116" ? 404 : 400;
@@ -141,6 +163,7 @@ export async function PUT({ request, cookies }) {
         headers: { "Content-Type": "application/json" },
       });
     }
+    if (!data) return json({ error: "Completed projects are permanently locked" }, 409);
 
     return new Response(
       JSON.stringify({ success: true, project: rowToClient(data) }),
@@ -164,15 +187,25 @@ export async function DELETE({ request, cookies }) {
 
     const { data: existing, error: existingError } = await supabase
       .from("projects")
-      .select("contractor, extra")
+      .select("contractor, status, extra")
       .eq("legacy_id", id)
       .single();
 
     if (existingError || !existing) return json({ error: "Project not found" }, 404);
     if (!canModify(session, existing)) return json({ error: "Forbidden" }, 403);
+    if (isCompletionLocked(existing)) {
+      return json({ error: "Completed projects cannot be deleted" }, 409);
+    }
 
-    const { error } = await supabase.from("projects").delete().eq("legacy_id", id);
+    const { data, error } = await supabase
+      .from("projects")
+      .delete()
+      .eq("legacy_id", id)
+      .neq("status", "completed")
+      .select("legacy_id")
+      .maybeSingle();
     if (error) return json({ error: error.message }, 400);
+    if (!data) return json({ error: "Completed projects cannot be deleted" }, 409);
     return json({ success: true });
   } catch (err) {
     return json({ error: err.message }, 400);

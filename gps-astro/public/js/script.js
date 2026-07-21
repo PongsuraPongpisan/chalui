@@ -887,11 +887,13 @@ function visibleProjects() {
   return projects.filter((project) => {
     // Contractor "My projects" contains only reports submitted through the contractor account.
     if (window.APP_ROLE === "contractor" && project.contractor !== "User submitted") return false;
-    // Closed Loop: hide zones that failed compliance (not published to drivers)
-    const published = (typeof window.AiAuditor !== 'undefined' && window.AiAuditor.isZonePublished)
-      ? window.AiAuditor.isZonePublished(project)
-      : true;
-    if (!published) return false;
+    // Closed Loop publication only controls traveler visibility; contractors always see their own work.
+    if (window.APP_ROLE !== "contractor") {
+      const published = (typeof window.AiAuditor !== 'undefined' && window.AiAuditor.isZonePublished)
+        ? window.AiAuditor.isZonePublished(project)
+        : true;
+      if (!published) return false;
+    }
     
     const matchesFilter = activeFilter === "all" || project.status === activeFilter;
     const searchable = [
@@ -1912,10 +1914,14 @@ function renderList() {
         </a>
         <span class="contractor-project-card-side">
           <span class="status-label status-${project.status}">${status.label}</span>
-          <span class="contractor-project-card-actions">
-            <a class="contractor-project-edit" href="${projectHref}#contractorProjectForm"><i class="fa-solid fa-pen"></i> แก้ไข</a>
-            <button class="contractor-project-delete" type="button" aria-label="ลบโครงการ ${displayBilingualText(project.name)}"><i class="fa-solid fa-trash"></i> ลบ</button>
-          </span>
+          ${project.status === "completed" ? `
+            <span class="contractor-project-locked"><i class="fa-solid fa-lock"></i> ล็อกแล้ว</span>
+          ` : `
+            <span class="contractor-project-card-actions">
+              <a class="contractor-project-edit" href="${projectHref}#contractorProjectForm"><i class="fa-solid fa-pen"></i> แก้ไข</a>
+              <button class="contractor-project-delete" type="button" aria-label="ลบโครงการ ${displayBilingualText(project.name)}"><i class="fa-solid fa-trash"></i> ลบ</button>
+            </span>
+          `}
         </span>
       `;
       card.querySelector('.contractor-project-delete')?.addEventListener('click', (event) => {
