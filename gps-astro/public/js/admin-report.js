@@ -171,7 +171,7 @@
     const decisionDetails = status === 'pending' ? '' : `
       <dl class="approval-decision-details">
         <dt>ผู้ตัดสินใจ</dt><dd>${escapeHtml(report.adminDecidedBy || '-')}</dd>
-        <dt>เวลาตัดสินใจ</dt><dd>${escapeHtml(formatDecisionDate(report.adminDecidedAt))}</dd>
+        <dt>เวลาอนุมัติ</dt><dd>${escapeHtml(formatDecisionDate(report.adminDecidedAt))}</dd>
       </dl>`;
     const completionNotice = status === 'pending' && !isCompleted ? `
       <div class="completion-warning" role="note">

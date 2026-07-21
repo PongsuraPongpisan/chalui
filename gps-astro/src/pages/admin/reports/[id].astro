@@ -55,6 +55,29 @@ const formatDate = (value: unknown) => {
   const date = new Date(String(value));
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
 };
+const parseProjectDate = (value: unknown) => {
+  if (!value) return null;
+  const text = String(value).trim();
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(text)
+    ? `${text}T00:00:00+07:00`
+    : (/[zZ]$|[+-]\d{2}:\d{2}$/.test(text) ? text : `${text}+07:00`);
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+const formatBangkokDateTime = (value: unknown) => {
+  const date = parseProjectDate(value);
+  return date ? new Intl.DateTimeFormat('th-TH', {
+    timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'medium',
+  }).format(date) : '-';
+};
+const formatDuration = (milliseconds: number) => {
+  const totalMinutes = Math.floor(Math.abs(milliseconds) / 60000);
+  if (totalMinutes < 1) return 'น้อยกว่า 1 นาที';
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  return [days && `${days} วัน`, hours && `${hours} ชั่วโมง`, minutes && `${minutes} นาที`].filter(Boolean).join(' ');
+};
 
 const idText = Astro.params.id || '';
 const projectId = Number(idText);
@@ -77,6 +100,19 @@ const lat = Number(project?.lat);
 const lng = Number(project?.lng);
 const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
 const statusKey = project?.status || '';
+const isCompleted = statusKey === 'completed';
+const completedDate = parseProjectDate(project?.completed_at);
+const plannedEndDate = parseProjectDate(project?.end);
+const scheduleDelta = completedDate && plannedEndDate ? completedDate.getTime() - plannedEndDate.getTime() : null;
+const scheduleResult = !isCompleted
+  ? { className: 'unknown', text: 'ยังไม่เสร็จสิ้น' }
+  : scheduleDelta === null
+    ? { className: 'unknown', text: 'ไม่สามารถคำนวณได้ เนื่องจากไม่มีเวลาปิดงานหรือเวลาสิ้นสุดตามแผน' }
+    : scheduleDelta === 0
+      ? { className: 'on-time', text: 'เสร็จตรงตามกำหนด' }
+      : scheduleDelta < 0
+        ? { className: 'early', text: `เสร็จก่อนกำหนด ${formatDuration(scheduleDelta)}` }
+        : { className: 'late', text: `เสร็จล่าช้ากว่ากำหนด ${formatDuration(scheduleDelta)}` };
 const requestedWorkLevel = project?.workLevel || 'medium';
 const workLevelKey = WORK_LEVEL_LABELS[requestedWorkLevel] ? requestedWorkLevel : 'medium';
 const statusLabel = project ? (STATUS_LABELS[statusKey] || statusKey || '-') : '-';
@@ -186,8 +222,9 @@ const reportData = project ? {
               <dt>ขอบเขต</dt><dd>{project.boundaryMeters ? `${project.boundaryMeters} เมตร` : '-'}</dd>
               <dt>สถานะ</dt><dd><span class={`admin-detail-work-status work-status-${statusKey || 'planned'}`}><i class={`fa-solid ${statusKey === 'completed' ? 'fa-circle-check' : statusKey === 'delayed' ? 'fa-triangle-exclamation' : statusKey === 'in-progress' ? 'fa-person-digging' : 'fa-calendar-days'}`}></i> {statusLabel}</span></dd>
               <dt>เริ่มงาน</dt><dd>{formatDate(project.start)}</dd>
-              <dt>สิ้นสุด</dt><dd>{formatDate(project.end)}</dd>
-              <dt>เวลารายงาน</dt><dd>{formatDate(project.timestamp)}</dd>
+              <dt>สิ้นสุดตามแผน</dt><dd>{formatBangkokDateTime(project.end)}</dd>
+              <dt>เสร็จสิ้นจริง</dt><dd>{isCompleted ? formatBangkokDateTime(project.completed_at) : '-'}</dd>
+              <dt>เทียบกับแผน</dt><dd><span class={`completion-timing ${scheduleResult.className}`}>{scheduleResult.text}</span></dd>
               <dt>หมายเหตุ</dt><dd>{project.statusNote || '-'}</dd>
             </dl>
           </section>
