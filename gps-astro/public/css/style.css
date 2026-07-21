@@ -3161,6 +3161,13 @@ body.lightbox-open {
   transform: none;
 }
 
+#addConstruction.is-complete {
+  background: #16a34a !important;
+  color: #fff !important;
+  cursor: default;
+  opacity: 1;
+}
+
 .mini-map {
   height: 180px;
   border-radius: 14px;
@@ -3905,11 +3912,34 @@ body[data-role="contractor"] .mini-map .leaflet-container {
   padding: 0;
 }
 
-.contractor-project-hero > img {
+.contractor-site-gallery {
+  position: relative;
   width: 100%;
   height: clamp(210px, 38vw, 340px);
+  overflow: hidden;
+  background: #e2e8f0;
+  touch-action: pan-y;
+}
+
+.contractor-site-gallery > img {
+  width: 100%;
+  height: 100%;
   display: block;
   object-fit: cover;
+  cursor: zoom-in;
+}
+
+.contractor-site-gallery-sample {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.62);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
 }
 
 .contractor-project-heading { padding: 18px; }

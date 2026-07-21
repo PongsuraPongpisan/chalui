@@ -2134,16 +2134,19 @@ async function addConstructionProject() {
 
   const addButton = document.getElementById('addConstruction');
   const addButtonDefaultContent = addButton?.innerHTML || '<i class="fa-solid fa-plus"></i> ส่งรายงานพื้นที่';
-  const setSubmissionState = (isSubmitting) => {
+  const setSubmissionState = (state) => {
     if (!addButton) return;
-    addButton.disabled = isSubmitting;
+    const isSubmitting = state === 'submitting';
+    const isComplete = state === 'complete';
+    addButton.disabled = isSubmitting || isComplete;
     addButton.classList.toggle('is-submitting', isSubmitting);
+    addButton.classList.toggle('is-complete', isComplete);
     addButton.setAttribute('aria-busy', String(isSubmitting));
-    addButton.innerHTML = isSubmitting
-      ? '<i class="fa-solid fa-spinner fa-spin"></i> กำลังส่งรายงาน...'
-      : addButtonDefaultContent;
+    if (isSubmitting) addButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังส่งรายงาน...';
+    else if (isComplete) addButton.innerHTML = '<i class="fa-solid fa-circle-check"></i> ส่งเสร็จสิ้นแล้ว';
+    else addButton.innerHTML = addButtonDefaultContent;
   };
-  setSubmissionState(true);
+  setSubmissionState('submitting');
 
   let savedProject;
   try {
@@ -2156,7 +2159,7 @@ async function addConstructionProject() {
     if (!response.ok) throw new Error(result.error || 'เพิ่มโครงการไม่สำเร็จ');
     savedProject = result.project || project;
   } catch (error) {
-    setSubmissionState(false);
+    setSubmissionState('idle');
     showToast(error.message || 'เพิ่มโครงการไม่สำเร็จ');
     return;
   }
@@ -2185,9 +2188,12 @@ async function addConstructionProject() {
   renderSummary();
   renderAll();
   selectProject(savedProject.id, true);
-  openProjectDetail(savedProject);
+  setSubmissionState('complete');
   showToast(`เพิ่มโครงการแล้ว: ${savedProject.name}`);
-  setSubmissionState(false);
+  window.setTimeout(() => {
+    setSubmissionState('idle');
+    openProjectDetail(savedProject);
+  }, 1400);
 
   // Reset the site-overview photo picker and 8-checkpoint photo picker for the next submission
   if (typeof window !== "undefined") {

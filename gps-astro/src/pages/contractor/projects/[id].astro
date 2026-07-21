@@ -50,7 +50,9 @@ if (validId) {
 if (!project) Astro.response.status = loadError ? 500 : 404;
 const isPhoto = (value: unknown): value is string => typeof value === 'string' && (/^data:image\//.test(value) || /^https:\/\//.test(value));
 const normalizePhotos = (value: unknown): string[] => Array.isArray(value) ? value.filter(isPhoto) : [];
-const cover = project && Array.isArray(project.sitePhotos) ? project.sitePhotos.find(isPhoto) || MOCK_PHOTO : MOCK_PHOTO;
+const sitePhotos = normalizePhotos(project?.sitePhotos);
+const siteGalleryPhotos = sitePhotos.length ? sitePhotos : [MOCK_PHOTO];
+const cover = siteGalleryPhotos[0];
 const checkpointPhotos = Object.fromEntries(
   CHECKPOINT_META.map(({ key }) => [key, normalizePhotos(project?.checkpointPhotos?.[key])])
 );
@@ -83,7 +85,13 @@ const toInputDate = (value: unknown) => {
     ) : (
       <main class="mobile-content contractor-project-main">
         <section class="contractor-project-hero card glass-panel">
-          <img src={cover} alt={`รูปหน้างาน ${project.name || ''}`}>
+          <div class="contractor-site-gallery" id="contractorSiteGallery" aria-label="อัลบั้มรูปถ่ายหน้างาน">
+            <img id="contractorSiteGalleryImage" src={cover} alt={`รูปหน้างาน ${project.name || ''} รูปที่ 1`}>
+            {sitePhotos.length === 0 && <span class="contractor-site-gallery-sample">ภาพตัวอย่าง</span>}
+            <button class="listing-cover-arrow prev" id="contractorSiteGalleryPrev" type="button" aria-label="รูปก่อนหน้า" hidden={siteGalleryPhotos.length <= 1}><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="listing-cover-arrow next" id="contractorSiteGalleryNext" type="button" aria-label="รูปถัดไป" hidden={siteGalleryPhotos.length <= 1}><i class="fa-solid fa-chevron-right"></i></button>
+            <span class="listing-cover-counter" id="contractorSiteGalleryCounter">1/{siteGalleryPhotos.length}</span>
+          </div>
           <div class="contractor-project-heading">
             <div class="report-heading-meta">
               <span class={`report-meta-chip report-level-chip level-${levelKey}`}><i class="fa-solid fa-layer-group"></i> {LEVEL_LABELS[levelKey]}</span>
@@ -175,13 +183,13 @@ const toInputDate = (value: unknown) => {
     <div class="image-lightbox" id="contractorProjectLightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="ดูรูปแบบเต็มจอ">
       <button class="lightbox-close" id="contractorProjectLightboxClose" type="button" aria-label="ปิด"><i class="fa-solid fa-xmark"></i></button>
       <button class="lightbox-arrow prev" id="contractorProjectLightboxPrev" type="button" aria-label="รูปก่อนหน้า"><i class="fa-solid fa-chevron-left"></i></button>
-      <img id="contractorProjectLightboxImg" alt="รูปตรวจมาตรฐานแบบเต็มจอ">
+      <img id="contractorProjectLightboxImg" alt="รูปโครงการแบบเต็มจอ">
       <button class="lightbox-arrow next" id="contractorProjectLightboxNext" type="button" aria-label="รูปถัดไป"><i class="fa-solid fa-chevron-right"></i></button>
       <span class="lightbox-counter" id="contractorProjectLightboxCounter">1/1</span>
     </div>
   )}
 
-  {project && <script is:inline define:vars={{ projectId: project.id, checkpointGalleryData: checkpointPhotos }}>
+  {project && <script is:inline define:vars={{ projectId: project.id, checkpointGalleryData: checkpointPhotos, siteGalleryData: siteGalleryPhotos }}>
     const form = document.getElementById('contractorProjectForm');
     const message = document.getElementById('contractorProjectMessage');
     const saveButton = document.getElementById('saveContractorProject');
@@ -191,6 +199,12 @@ const toInputDate = (value: unknown) => {
     const lightboxCounter = document.getElementById('contractorProjectLightboxCounter');
     const lightboxPrevious = document.getElementById('contractorProjectLightboxPrev');
     const lightboxNext = document.getElementById('contractorProjectLightboxNext');
+    const siteGallery = document.getElementById('contractorSiteGallery');
+    const siteGalleryImage = document.getElementById('contractorSiteGalleryImage');
+    const siteGalleryCounter = document.getElementById('contractorSiteGalleryCounter');
+    const siteGalleryPrevious = document.getElementById('contractorSiteGalleryPrev');
+    const siteGalleryNext = document.getElementById('contractorSiteGalleryNext');
+    let siteGalleryIndex = 0;
     let activeAlbum = [];
     let activePhotoIndex = 0;
 
@@ -226,6 +240,23 @@ const toInputDate = (value: unknown) => {
       renderProjectLightbox();
     }
 
+    function renderSiteGallery() {
+      if (!siteGalleryImage || !siteGalleryData.length) return;
+      siteGalleryImage.src = siteGalleryData[siteGalleryIndex];
+      siteGalleryImage.alt = `รูปถ่ายหน้างาน รูปที่ ${siteGalleryIndex + 1}`;
+      if (siteGalleryCounter) siteGalleryCounter.textContent = `${siteGalleryIndex + 1}/${siteGalleryData.length}`;
+    }
+
+    function changeSiteGallery(step) {
+      if (siteGalleryData.length < 2) return;
+      siteGalleryIndex = (siteGalleryIndex + step + siteGalleryData.length) % siteGalleryData.length;
+      renderSiteGallery();
+    }
+
+    siteGalleryPrevious?.addEventListener('click', () => changeSiteGallery(-1));
+    siteGalleryNext?.addEventListener('click', () => changeSiteGallery(1));
+    siteGalleryImage?.addEventListener('click', () => openProjectLightbox(siteGalleryData, siteGalleryIndex));
+
     document.querySelectorAll('[data-contractor-checkpoint]').forEach((album) => {
       const photos = checkpointGalleryData?.[album.dataset.contractorCheckpoint] || [];
       album.querySelectorAll('[data-contractor-photo-index]').forEach((button) => {
@@ -258,13 +289,48 @@ const toInputDate = (value: unknown) => {
       changeProjectLightbox(deltaX < 0 ? 1 : -1);
     }, { passive: true });
 
-    function readCheckpointFile(file) {
+    let siteSwipeStartX = 0;
+    let siteSwipeStartY = 0;
+    siteGallery?.addEventListener('touchstart', (event) => {
+      siteSwipeStartX = event.changedTouches[0].clientX;
+      siteSwipeStartY = event.changedTouches[0].clientY;
+    }, { passive: true });
+    siteGallery?.addEventListener('touchend', (event) => {
+      const deltaX = event.changedTouches[0].clientX - siteSwipeStartX;
+      const deltaY = event.changedTouches[0].clientY - siteSwipeStartY;
+      if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+      changeSiteGallery(deltaX < 0 ? 1 : -1);
+    }, { passive: true });
+
+    function fileToDataUrl(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
+        reader.onload = () => resolve(String(reader.result || ''));
         reader.onerror = () => reject(new Error('ไม่สามารถอ่านไฟล์รูปได้'));
         reader.readAsDataURL(file);
       });
+    }
+
+    async function readCheckpointFile(file) {
+      const source = await fileToDataUrl(file);
+      if (!file.type.startsWith('image/') || file.size <= 450000) return source;
+
+      const image = await new Promise((resolve, reject) => {
+        const element = new Image();
+        element.onload = () => resolve(element);
+        element.onerror = () => reject(new Error('ไม่สามารถปรับขนาดรูปได้'));
+        element.src = source;
+      });
+      const maxDimension = 1600;
+      const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext('2d');
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.82);
     }
 
     function notifyProjectPhotoUpdate() {

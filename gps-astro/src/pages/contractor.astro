@@ -262,13 +262,35 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     constructionLevelSelect?.addEventListener('change', () => selectConstructionLevel(constructionLevelSelect.value));
     selectConstructionLevel(constructionLevelSelect?.value || 'medium');
 
-    function readAsDataUrl(file) {
+    function fileToDataUrl(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result || ''));
         reader.onerror = () => reject(reader.error);
         reader.readAsDataURL(file);
       });
+    }
+
+    async function readAsDataUrl(file) {
+      const source = await fileToDataUrl(file);
+      if (!file.type.startsWith('image/') || file.size <= 450000) return source;
+
+      const image = await new Promise((resolve, reject) => {
+        const element = new Image();
+        element.onload = () => resolve(element);
+        element.onerror = () => reject(new Error('ไม่สามารถปรับขนาดรูปได้'));
+        element.src = source;
+      });
+      const maxDimension = 1600;
+      const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext('2d');
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.82);
     }
 
     // ─── Original site-overview photo (multi-photo, removable — same pattern as checkpoints) ───
