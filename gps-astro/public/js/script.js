@@ -2169,11 +2169,8 @@ async function addConstructionProject() {
     if (!addButton) return;
     const isSubmitting = state === 'submitting';
     addButton.disabled = isSubmitting;
-    addButton.classList.toggle('is-submitting', isSubmitting);
     addButton.setAttribute('aria-busy', String(isSubmitting));
-    addButton.innerHTML = isSubmitting
-      ? '<i class="fa-solid fa-spinner fa-spin"></i> กำลังส่งรายงาน...'
-      : addButtonDefaultContent;
+    addButton.innerHTML = addButtonDefaultContent;
   };
   setSubmissionState('submitting');
 

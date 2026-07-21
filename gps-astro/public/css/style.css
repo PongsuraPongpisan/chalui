@@ -3151,14 +3151,9 @@ body.lightbox-open {
 .big-action.teal { background: #1f9a9a; }
 .big-action:active { transform: scale(0.98); }
 
-#addConstruction.is-submitting,
 #addConstruction:disabled {
-  background: #94a3b8 !important;
-  color: #f8fafc !important;
-  box-shadow: none !important;
-  cursor: wait;
-  opacity: 0.92;
-  transform: none;
+  cursor: default;
+  opacity: 1;
 }
 
 body.submission-success-open { overflow: hidden; }
