@@ -73,9 +73,11 @@ function renderConstructionReportListOnly() {
       <div class="queue-info">
         <strong>${p.name}</strong>
         <span>${p.roadName || ''} — ${p.contractor}</span>
-        <span>สถานะ: ${statusLabelOf(p.status)}</span>
       </div>
-      <span class="construction-level-badge level-${levelKey}">${level.icon} ${level.code} · ${level.label}</span>
+      <div class="admin-report-card-footer">
+        <span class="admin-report-status">สถานะ: ${statusLabelOf(p.status)}</span>
+        <span class="construction-level-badge level-${levelKey}">${level.icon} ${level.code} · ${level.label}</span>
+      </div>
     </a>
   `;
   }).join('');

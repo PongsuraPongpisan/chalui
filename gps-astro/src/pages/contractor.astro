@@ -25,7 +25,33 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               <label><span>ประเภทงาน</span><select id="constructionType"><option value="Road resurfacing">ซ่อมผิวจราจร</option><option value="Drainage">ระบบระบายน้ำ</option><option value="Utility relocation">ย้ายสาธารณูปโภค</option><option value="Bridge repair">ซ่อมสะพาน</option><option value="Signal upgrade">ปรับสัญญาณ</option></select></label>
               <label><span>สถานะ</span><select id="constructionStatus"><option value="in-progress">กำลังทำ</option><option value="delayed">ล่าช้า</option><option value="planned">วางแผน</option><option value="completed">เสร็จสิ้น</option></select></label>
             </div>
-            <label><span>ระดับงานก่อสร้าง</span><select id="constructionWorkLevel"><option value="critical">ระดับ 1 — วิกฤต</option><option value="high">ระดับ 2 — สูง</option><option value="medium" selected>ระดับ 3 — ปานกลาง</option><option value="routine">ระดับ 4 — ทั่วไป</option></select></label>
+            <fieldset class="construction-level-picker">
+              <legend>
+                <span class="construction-level-title"><i class="fa-solid fa-layer-group"></i> ระดับงานก่อสร้าง</span>
+                <small>เลือกระดับตามความเสี่ยงและผลกระทบต่อการจราจร</small>
+              </legend>
+              <div class="construction-level-options" role="radiogroup" aria-label="ระดับงานก่อสร้าง">
+                <button class="construction-level-option level-critical" type="button" role="radio" aria-checked="false" tabindex="-1" data-construction-level="critical">
+                  <span class="construction-level-option-head"><span class="level-color-dot"></span><span>ระดับ 1</span><i class="fa-solid fa-circle-check"></i></span>
+                  <strong>วิกฤต</strong><small>ตรวจเข้มพิเศษ</small>
+                </button>
+                <button class="construction-level-option level-high" type="button" role="radio" aria-checked="false" tabindex="-1" data-construction-level="high">
+                  <span class="construction-level-option-head"><span class="level-color-dot"></span><span>ระดับ 2</span><i class="fa-solid fa-circle-check"></i></span>
+                  <strong>สูง</strong><small>ตรวจเข้ม 8 กฎเต็ม</small>
+                </button>
+                <button class="construction-level-option level-medium is-selected" type="button" role="radio" aria-checked="true" tabindex="0" data-construction-level="medium">
+                  <span class="construction-level-option-head"><span class="level-color-dot"></span><span>ระดับ 3</span><i class="fa-solid fa-circle-check"></i></span>
+                  <strong>ปานกลาง</strong><small>ตรวจมาตรฐาน</small>
+                </button>
+                <button class="construction-level-option level-routine" type="button" role="radio" aria-checked="false" tabindex="-1" data-construction-level="routine">
+                  <span class="construction-level-option-head"><span class="level-color-dot"></span><span>ระดับ 4</span><i class="fa-solid fa-circle-check"></i></span>
+                  <strong>ทั่วไป</strong><small>ตรวจพื้นฐาน</small>
+                </button>
+              </div>
+              <select id="constructionWorkLevel" class="visually-hidden" aria-hidden="true" tabindex="-1">
+                <option value="critical">ระดับ 1 — วิกฤต</option><option value="high">ระดับ 2 — สูง</option><option value="medium" selected>ระดับ 3 — ปานกลาง</option><option value="routine">ระดับ 4 — ทั่วไป</option>
+              </select>
+            </fieldset>
             <label><span>ถนน</span><select id="constructionRoad"></select></label>
             <div class="card-grid two">
               <label><span>ละติจูด</span><input id="constructionLat" type="number" step="0.000001"></label>
@@ -205,6 +231,34 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         document.getElementById(btn.dataset.section).classList.remove('section-hidden');
       });
     });
+
+    // Keep the polished level cards synchronized with the original select value.
+    const constructionLevelSelect = document.getElementById('constructionWorkLevel');
+    const constructionLevelOptions = Array.from(document.querySelectorAll('[data-construction-level]'));
+    function selectConstructionLevel(level, focus = false) {
+      if (!constructionLevelSelect || !constructionLevelOptions.some((option) => option.dataset.constructionLevel === level)) return;
+      constructionLevelSelect.value = level;
+      constructionLevelOptions.forEach((option) => {
+        const selected = option.dataset.constructionLevel === level;
+        option.classList.toggle('is-selected', selected);
+        option.setAttribute('aria-checked', String(selected));
+        option.tabIndex = selected ? 0 : -1;
+        if (selected && focus) option.focus();
+      });
+    }
+    constructionLevelOptions.forEach((option, index) => {
+      option.addEventListener('click', () => selectConstructionLevel(option.dataset.constructionLevel));
+      option.addEventListener('keydown', (event) => {
+        const direction = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 0;
+        if (!direction && event.key !== 'Home' && event.key !== 'End') return;
+        event.preventDefault();
+        const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? constructionLevelOptions.length - 1 : (index + direction + constructionLevelOptions.length) % constructionLevelOptions.length;
+        selectConstructionLevel(constructionLevelOptions[nextIndex].dataset.constructionLevel, true);
+      });
+    });
+    constructionLevelSelect?.addEventListener('change', () => selectConstructionLevel(constructionLevelSelect.value));
+    selectConstructionLevel(constructionLevelSelect?.value || 'medium');
+
     function readAsDataUrl(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
