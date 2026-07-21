@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { localizeRoad, localizeWorkType, WORK_TYPE_LABELS } from '../../../lib/project-localization.js';
 import { rowToClient } from '../../../lib/project-mapper.js';
 import { getSession } from '../../../lib/session.js';
 import { supabase } from '../../../lib/supabase.js';
@@ -10,7 +11,7 @@ type Project = Record<string, unknown> & {
   id: number; name?: string; province?: string; contractor?: string; status?: string;
   workLevel?: string; roadName?: string; lat?: number; lng?: number;
   boundaryMeters?: number; start?: string; end?: string; workType?: string;
-  statusNote?: string; sitePhotos?: unknown;
+  statusNote?: string; sitePhotos?: unknown; checkpointPhotos?: Record<string, unknown>;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -20,6 +21,16 @@ const LEVEL_LABELS: Record<string, string> = {
   critical: 'ระดับ 1 — วิกฤต', high: 'ระดับ 2 — สูง',
   medium: 'ระดับ 3 — ปานกลาง', routine: 'ระดับ 4 — ทั่วไป',
 };
+const CHECKPOINT_META = [
+  { key: 'cone', num: 1, icon: 'fa-triangle-exclamation', label: 'กรวยจราจร' },
+  { key: 'warning_sign', num: 2, icon: 'fa-sign-hanging', label: 'ป้ายเตือน' },
+  { key: 'flashing_light', num: 3, icon: 'fa-lightbulb', label: 'ไฟเตือน' },
+  { key: 'barrier', num: 4, icon: 'fa-road-barrier', label: 'แผงกั้นเขตก่อสร้าง' },
+  { key: 'lane_marking', num: 5, icon: 'fa-road', label: 'เส้นแบ่งช่องทาง' },
+  { key: 'speed_limit_sign', num: 6, icon: 'fa-gauge-high', label: 'ป้ายจำกัดความเร็ว' },
+  { key: 'detour', num: 7, icon: 'fa-diamond-turn-right', label: 'ทางเบี่ยง' },
+  { key: 'construction_zone', num: 8, icon: 'fa-map-location-dot', label: 'เขตก่อสร้าง' },
+];
 const MOCK_PHOTO = 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=1200&q=75&auto=format&fit=crop';
 const idText = Astro.params.id || '';
 const id = Number(idText);
@@ -38,7 +49,13 @@ if (validId) {
 }
 if (!project) Astro.response.status = loadError ? 500 : 404;
 const isPhoto = (value: unknown): value is string => typeof value === 'string' && (/^data:image\//.test(value) || /^https:\/\//.test(value));
+const normalizePhotos = (value: unknown): string[] => Array.isArray(value) ? value.filter(isPhoto) : [];
 const cover = project && Array.isArray(project.sitePhotos) ? project.sitePhotos.find(isPhoto) || MOCK_PHOTO : MOCK_PHOTO;
+const checkpointPhotos = Object.fromEntries(
+  CHECKPOINT_META.map(({ key }) => [key, normalizePhotos(project?.checkpointPhotos?.[key])])
+);
+const localizedWorkType = localizeWorkType(project?.workType);
+const localizedRoad = localizeRoad(project?.roadName);
 const statusKey = project && STATUS_LABELS[project.status || ''] ? project.status as string : 'planned';
 const levelKey = project && LEVEL_LABELS[project.workLevel || ''] ? project.workLevel as string : 'medium';
 const toInputDate = (value: unknown) => {
@@ -73,7 +90,43 @@ const toInputDate = (value: unknown) => {
               <span class="report-meta-chip"><i class="fa-solid fa-helmet-safety"></i> {STATUS_LABELS[statusKey]}</span>
             </div>
             <h2>{project.name}</h2>
-            <p><i class="fa-solid fa-road"></i> {project.roadName || '-'} · {project.province || '-'}</p>
+            <p><i class="fa-solid fa-road"></i> {localizedRoad} · {project.province || '-'}</p>
+          </div>
+        </section>
+
+        <section class="report-section report-detail-card glass-panel">
+          <h2 class="report-section-title"><i class="fa-solid fa-circle-info"></i> รายละเอียดโครงการ</h2>
+          <dl class="detail-list report-detail-list">
+            <dt>ประเภทงาน</dt><dd>{localizedWorkType}</dd>
+            <dt>ถนน</dt><dd>{localizedRoad}</dd>
+            <dt>จังหวัด</dt><dd>{project.province || '-'}</dd>
+            <dt>สถานะ</dt><dd>{STATUS_LABELS[statusKey]}</dd>
+            <dt>ระดับงาน</dt><dd>{LEVEL_LABELS[levelKey]}</dd>
+            <dt>หมายเหตุ</dt><dd>{project.statusNote || '-'}</dd>
+          </dl>
+        </section>
+
+        <section class="report-section report-detail-card glass-panel" aria-labelledby="contractor-checkpoint-title">
+          <h2 class="report-section-title" id="contractor-checkpoint-title"><i class="fa-solid fa-list-check"></i> รูปตรวจมาตรฐาน 8 จุดสำคัญ</h2>
+          <p class="contractor-gallery-help">แตะรูปเพื่อเปิดอัลบั้มและเลื่อนดูรูปทั้งหมดในจุดนั้น</p>
+          <div class="checkpoint-albums-grid">
+            {CHECKPOINT_META.map((meta) => {
+              const photos = checkpointPhotos[meta.key];
+              return <section class="checkpoint-album-group">
+                <h3 class="checkpoint-album-title"><span class="checkpoint-num">{meta.num}</span><i class={`fa-solid ${meta.icon}`}></i> {meta.label}</h3>
+                {photos.length ? (
+                  <div class="checkpoint-album-strip" data-contractor-checkpoint={meta.key} aria-label={`อัลบั้ม${meta.label}`}>
+                    {photos.map((src, index) => <button class="checkpoint-photo-button" type="button" data-contractor-photo-index={index} aria-label={`ขยายรูป ${meta.label} รูปที่ ${index + 1}`}><img src={src} alt={`${meta.label} รูปที่ ${index + 1}`} loading="lazy"></button>)}
+                  </div>
+                ) : (
+                  <div class="checkpoint-photo-placeholder" aria-label={`${meta.label} ยังไม่มีรูป`}>
+                    <i class="fa-regular fa-image"></i>
+                    <span>ยังไม่มีรูป</span>
+                    <small>สามารถเพิ่มรูปภายหลัง</small>
+                  </div>
+                )}
+              </section>;
+            })}
           </div>
         </section>
 
@@ -82,11 +135,14 @@ const toInputDate = (value: unknown) => {
           <div class="card-grid">
             <label><span>ชื่องาน</span><input name="name" value={project.name || ''} required></label>
             <div class="card-grid two">
-              <label><span>ประเภทงาน</span><input name="workType" value={project.workType || ''}></label>
+              <label><span>ประเภทงาน</span><select name="workType">
+                {project.workType && !Object.prototype.hasOwnProperty.call(WORK_TYPE_LABELS, project.workType) && <option value={project.workType} selected>{localizedWorkType}</option>}
+                {Object.entries(WORK_TYPE_LABELS).map(([value, label]) => <option value={value} selected={project.workType === value}>{label}</option>)}
+              </select></label>
               <label><span>สถานะ</span><select name="status"><option value="in-progress" selected={statusKey === 'in-progress'}>กำลังทำ</option><option value="delayed" selected={statusKey === 'delayed'}>ล่าช้า</option><option value="planned" selected={statusKey === 'planned'}>วางแผน</option><option value="completed" selected={statusKey === 'completed'}>เสร็จสิ้น</option></select></label>
             </div>
             <label><span>ระดับงานก่อสร้าง</span><select name="workLevel"><option value="critical" selected={levelKey === 'critical'}>ระดับ 1 — วิกฤต</option><option value="high" selected={levelKey === 'high'}>ระดับ 2 — สูง</option><option value="medium" selected={levelKey === 'medium'}>ระดับ 3 — ปานกลาง</option><option value="routine" selected={levelKey === 'routine'}>ระดับ 4 — ทั่วไป</option></select></label>
-            <label><span>ถนน</span><input name="roadName" value={project.roadName || ''}></label>
+            <label><span>ถนน</span><input name="roadName" value={localizedRoad === '-' ? '' : localizedRoad}></label>
             <div class="card-grid two">
               <label><span>ละติจูด</span><input name="lat" type="number" step="0.000001" value={project.lat}></label>
               <label><span>ลองจิจูด</span><input name="lng" type="number" step="0.000001" value={project.lng}></label>
@@ -108,11 +164,92 @@ const toInputDate = (value: unknown) => {
     )}
   </div>
 
-  {project && <script is:inline define:vars={{ projectId: project.id }}>
+  {project && (
+    <div class="image-lightbox" id="contractorProjectLightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="ดูรูปแบบเต็มจอ">
+      <button class="lightbox-close" id="contractorProjectLightboxClose" type="button" aria-label="ปิด"><i class="fa-solid fa-xmark"></i></button>
+      <button class="lightbox-arrow prev" id="contractorProjectLightboxPrev" type="button" aria-label="รูปก่อนหน้า"><i class="fa-solid fa-chevron-left"></i></button>
+      <img id="contractorProjectLightboxImg" alt="รูปตรวจมาตรฐานแบบเต็มจอ">
+      <button class="lightbox-arrow next" id="contractorProjectLightboxNext" type="button" aria-label="รูปถัดไป"><i class="fa-solid fa-chevron-right"></i></button>
+      <span class="lightbox-counter" id="contractorProjectLightboxCounter">1/1</span>
+    </div>
+  )}
+
+  {project && <script is:inline define:vars={{ projectId: project.id, checkpointGalleryData: checkpointPhotos }}>
     const form = document.getElementById('contractorProjectForm');
     const message = document.getElementById('contractorProjectMessage');
     const saveButton = document.getElementById('saveContractorProject');
     const deleteButton = document.getElementById('deleteContractorProject');
+    const lightbox = document.getElementById('contractorProjectLightbox');
+    const lightboxImage = document.getElementById('contractorProjectLightboxImg');
+    const lightboxCounter = document.getElementById('contractorProjectLightboxCounter');
+    const lightboxPrevious = document.getElementById('contractorProjectLightboxPrev');
+    const lightboxNext = document.getElementById('contractorProjectLightboxNext');
+    let activeAlbum = [];
+    let activePhotoIndex = 0;
+
+    function renderProjectLightbox() {
+      if (!activeAlbum.length || !lightboxImage) return;
+      lightboxImage.src = activeAlbum[activePhotoIndex];
+      lightboxCounter.textContent = `${activePhotoIndex + 1}/${activeAlbum.length}`;
+      const hasMultiple = activeAlbum.length > 1;
+      lightboxPrevious.hidden = !hasMultiple;
+      lightboxNext.hidden = !hasMultiple;
+    }
+
+    function openProjectLightbox(photos, index) {
+      if (!Array.isArray(photos) || photos.length === 0) return;
+      activeAlbum = photos;
+      activePhotoIndex = Math.max(0, Math.min(index, photos.length - 1));
+      renderProjectLightbox();
+      lightbox.classList.add('visible');
+      lightbox.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('lightbox-open');
+      document.getElementById('contractorProjectLightboxClose')?.focus();
+    }
+
+    function closeProjectLightbox() {
+      lightbox?.classList.remove('visible');
+      lightbox?.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('lightbox-open');
+    }
+
+    function changeProjectLightbox(step) {
+      if (activeAlbum.length < 2) return;
+      activePhotoIndex = (activePhotoIndex + step + activeAlbum.length) % activeAlbum.length;
+      renderProjectLightbox();
+    }
+
+    document.querySelectorAll('[data-contractor-checkpoint]').forEach((album) => {
+      const photos = checkpointGalleryData?.[album.dataset.contractorCheckpoint] || [];
+      album.querySelectorAll('[data-contractor-photo-index]').forEach((button) => {
+        button.addEventListener('click', () => openProjectLightbox(photos, Number(button.dataset.contractorPhotoIndex)));
+      });
+    });
+    document.getElementById('contractorProjectLightboxClose')?.addEventListener('click', closeProjectLightbox);
+    lightboxPrevious?.addEventListener('click', () => changeProjectLightbox(-1));
+    lightboxNext?.addEventListener('click', () => changeProjectLightbox(1));
+    lightbox?.addEventListener('click', (event) => {
+      if (event.target === lightbox) closeProjectLightbox();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (!lightbox?.classList.contains('visible')) return;
+      if (event.key === 'Escape') closeProjectLightbox();
+      if (event.key === 'ArrowLeft') changeProjectLightbox(-1);
+      if (event.key === 'ArrowRight') changeProjectLightbox(1);
+    });
+
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+    lightbox?.addEventListener('touchstart', (event) => {
+      swipeStartX = event.changedTouches[0].clientX;
+      swipeStartY = event.changedTouches[0].clientY;
+    }, { passive: true });
+    lightbox?.addEventListener('touchend', (event) => {
+      const deltaX = event.changedTouches[0].clientX - swipeStartX;
+      const deltaY = event.changedTouches[0].clientY - swipeStartY;
+      if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+      changeProjectLightbox(deltaX < 0 ? 1 : -1);
+    }, { passive: true });
 
     form?.addEventListener('submit', async (event) => {
       event.preventDefault();

@@ -72,7 +72,7 @@ function renderConstructionReportListOnly() {
       <img class="report-card-thumb" src="${cover}" alt="รูปหน้างาน">
       <div class="queue-info">
         <strong>${p.name}</strong>
-        <span>${p.roadName || ''} — ${p.contractor}</span>
+        <span>${typeof displayPlaceName === 'function' ? displayPlaceName(p.roadName) : (p.roadName || '')} — ${p.contractor}</span>
       </div>
       <div class="admin-report-card-footer">
         <span class="admin-report-status">สถานะ: ${statusLabelOf(p.status)}</span>

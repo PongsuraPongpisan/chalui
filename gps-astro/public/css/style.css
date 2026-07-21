@@ -1205,6 +1205,34 @@ body.lightbox-open {
   padding: 10px 0;
 }
 
+.contractor-gallery-help {
+  margin: -3px 0 12px;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.checkpoint-photo-placeholder {
+  display: grid;
+  min-height: 96px;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  padding: 12px;
+  border: 1.5px dashed color-mix(in srgb, var(--teal) 45%, var(--line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--teal) 4%, white);
+  color: var(--muted);
+  text-align: center;
+}
+
+.checkpoint-photo-placeholder i {
+  color: color-mix(in srgb, var(--teal) 72%, #64748b);
+  font-size: 1.35rem;
+}
+
+.checkpoint-photo-placeholder span { font-size: 0.76rem; font-weight: 750; }
+.checkpoint-photo-placeholder small { font-size: 0.66rem; }
+
 /* Fullscreen lightbox — used for cover gallery + checkpoint albums */
 .image-lightbox {
   display: none;

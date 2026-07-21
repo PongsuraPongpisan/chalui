@@ -40,7 +40,10 @@ export async function GET({ cookies }) {
   }
 
   return new Response(JSON.stringify(data.map(rowToClient)), {
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store, max-age=0",
+    },
   });
 }
 

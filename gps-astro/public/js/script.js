@@ -112,6 +112,19 @@ const thaiPlaceNames = {
   "muang thong": "เมืองทอง"
 };
 
+const thaiWorkTypeNames = {
+  "Road resurfacing": "ซ่อมผิวจราจร",
+  Drainage: "ระบบระบายน้ำ",
+  "Utility relocation": "ย้ายสาธารณูปโภค",
+  "Bridge repair": "ซ่อมสะพาน",
+  "Signal upgrade": "ปรับปรุงสัญญาณจราจร"
+};
+
+function displayWorkType(value) {
+  const text = String(value || "").trim();
+  return thaiWorkTypeNames[text] || text || "-";
+}
+
 const addressOverrides = {
   "current-demo": { name: "ตำแหน่งปัจจุบัน (ตัวอย่าง: เซ็นทรัลลาดพร้าว)", aliases: ["current", "current location", "ตำแหน่งปัจจุบัน", "central ladprao", "เซ็นทรัลลาดพร้าว"] },
   "city-center": { name: "กรุงเทพฯ", aliases: ["bangkok", "bangkok city center", "กรุงเทพ", "กรุงเทพฯ"] },
@@ -218,10 +231,10 @@ const uploadedProjectImages = loadLocalState("gpsConstructionProjectImages", {})
 // Astro Central Server Sync (Phase 4)
 async function syncWithServer() {
   try {
-    const resProjects = await fetch('/api/projects');
+    const resProjects = await fetch('/api/projects', { cache: 'no-store' });
     if (resProjects.ok) {
       const data = await resProjects.json();
-      if (Array.isArray(data) && (data.length > 0 || window.APP_ROLE === "contractor")) {
+      if (Array.isArray(data) && (data.length > 0 || window.APP_ROLE === "contractor" || window.APP_ROLE === "admin")) {
         projects.length = 0;
         projects.push(...data);
         if (typeof hydrateProjectDetails === "function") hydrateProjectDetails();
@@ -239,6 +252,10 @@ async function syncWithServer() {
 
     if (typeof renderAll === "function") renderAll();
     if (typeof renderReports === "function") renderReports();
+    if (window.AdminModule) {
+      window.AdminModule.renderConstructionReports();
+      window.AdminModule.renderCompanyList();
+    }
   } catch (error) {
     console.warn("Failed to sync with Astro backend server:", error);
   }
@@ -434,7 +451,7 @@ function openProjectDetail(project) {
   selectedProjectId = project.id;
   renderAll();
   setText("detailName", displayBilingualText(project.name));
-  setText("detailType", project.workType || "-");
+  setText("detailType", displayWorkType(project.workType));
   setText("detailGps", `${project.lat.toFixed(6)}, ${project.lng.toFixed(6)}`);
   setText("detailBoundary", `${project.boundaryMeters || 260} m around pin`);
   setText("detailTimestamp", formatDateTime(project.timestamp || new Date().toISOString()));
@@ -922,8 +939,8 @@ function popupTemplate(project) {
       <h3>${displayBilingualText(project.name)}</h3>
       <dl>
         <dt>Status</dt><dd>${status.label}</dd>
-        <dt>Type</dt><dd>${project.workType || "-"}</dd>
-        <dt>Road</dt><dd>${displayPlaceName(project.roadName)}</dd>
+        <dt>ประเภทงาน</dt><dd>${displayWorkType(project.workType)}</dd>
+        <dt>ถนน</dt><dd>${displayPlaceName(project.roadName)}</dd>
         <dt>Province</dt><dd>${displayPlaceName(project.province)}</dd>
         <dt>Contractor</dt><dd>${project.contractor}</dd>
         <dt>Start</dt><dd>${formatDate(project.start)}</dd>
@@ -2134,7 +2151,22 @@ async function addConstructionProject() {
     return;
   }
 
-  projects.push(savedProject);
+  const savedIndex = projects.findIndex((item) => String(item.id) === String(savedProject.id));
+  if (savedIndex >= 0) projects[savedIndex] = savedProject;
+  else projects.push(savedProject);
+
+  // Notify an already-open Admin page immediately; polling remains the cross-device fallback.
+  try {
+    if ('BroadcastChannel' in window) {
+      const channel = new BroadcastChannel('chalui-projects');
+      channel.postMessage({ type: 'project-updated', id: savedProject.id });
+      channel.close();
+    }
+    localStorage.setItem('chalui-project-updated', `${savedProject.id}:${Date.now()}`);
+  } catch (error) {
+    console.warn('Project update notification was unavailable:', error);
+  }
+
   selectedProjectId = savedProject.id;
   activeFilter = "all";
   document.querySelectorAll(".filter-chip").forEach((button) => {
@@ -2755,9 +2787,37 @@ function init() {
   });
 }
 
-// Only run init if we have the map element (skip on landing page)
+// Map pages keep their full initialization path. The Admin dashboard has no map,
+// so start backend synchronization independently for its construction report list.
 if (document.getElementById("map")) {
   init();
+} else if (window.APP_ROLE === "admin" && document.getElementById("workLevelOverview")) {
+  let adminSyncInFlight = false;
+  const refreshAdminProjects = async () => {
+    if (adminSyncInFlight) return;
+    adminSyncInFlight = true;
+    try {
+      await syncWithServer();
+    } finally {
+      adminSyncInFlight = false;
+    }
+  };
+
+  refreshAdminProjects();
+  window.setInterval(refreshAdminProjects, 2000);
+  window.addEventListener('pageshow', refreshAdminProjects);
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'chalui-project-updated') refreshAdminProjects();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshAdminProjects();
+  });
+  if ('BroadcastChannel' in window) {
+    const projectChannel = new BroadcastChannel('chalui-projects');
+    projectChannel.addEventListener('message', (event) => {
+      if (event.data?.type === 'project-updated') refreshAdminProjects();
+    });
+  }
 } else {
-  console.log("[script.js] Landing page — skipping map init.");
+  console.log("[script.js] Page does not require map initialization.");
 }

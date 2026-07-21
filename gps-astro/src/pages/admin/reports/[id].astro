@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { localizeRoad, localizeWorkType } from '../../../lib/project-localization.js';
 import { rowToClient } from '../../../lib/project-mapper.js';
 import { supabase } from '../../../lib/supabase.js';
 
@@ -168,10 +169,10 @@ const reportData = project ? {
             <dl class="detail-list report-detail-list">
               <dt>ชื่องาน</dt><dd>{project.name || '-'}</dd>
               <dt>บริษัท</dt><dd>{project.contractor || '-'}</dd>
-              <dt>ประเภทงาน</dt><dd>{project.workType || '-'}</dd>
+              <dt>ประเภทงาน</dt><dd>{localizeWorkType(project.workType)}</dd>
               <dt>ระดับงาน</dt><dd>{workLevelLabel}</dd>
               <dt>จังหวัด</dt><dd>{project.province || '-'}</dd>
-              <dt>ถนน</dt><dd>{project.roadName || '-'}</dd>
+              <dt>ถนน</dt><dd>{localizeRoad(project.roadName)}</dd>
               <dt>GPS</dt><dd>{hasCoordinates ? `${lat.toFixed(6)}, ${lng.toFixed(6)}` : '-'}</dd>
               <dt>ขอบเขต</dt><dd>{project.boundaryMeters ? `${project.boundaryMeters} เมตร` : '-'}</dd>
               <dt>สถานะ</dt><dd>{statusLabel}</dd>
