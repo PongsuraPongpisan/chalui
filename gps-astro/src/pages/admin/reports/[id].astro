@@ -184,7 +184,7 @@ const reportData = project ? {
               <dt>ถนน</dt><dd>{localizeRoad(project.roadName)}</dd>
               <dt>GPS</dt><dd>{hasCoordinates ? `${lat.toFixed(6)}, ${lng.toFixed(6)}` : '-'}</dd>
               <dt>ขอบเขต</dt><dd>{project.boundaryMeters ? `${project.boundaryMeters} เมตร` : '-'}</dd>
-              <dt>สถานะ</dt><dd>{statusLabel}</dd>
+              <dt>สถานะ</dt><dd><span class={`admin-detail-work-status work-status-${statusKey || 'planned'}`}><i class={`fa-solid ${statusKey === 'completed' ? 'fa-circle-check' : statusKey === 'delayed' ? 'fa-triangle-exclamation' : statusKey === 'in-progress' ? 'fa-person-digging' : 'fa-calendar-days'}`}></i> {statusLabel}</span></dd>
               <dt>เริ่มงาน</dt><dd>{formatDate(project.start)}</dd>
               <dt>สิ้นสุด</dt><dd>{formatDate(project.end)}</dd>
               <dt>เวลารายงาน</dt><dd>{formatDate(project.timestamp)}</dd>

@@ -12,6 +12,15 @@ function initAdmin() {
 // ─── Section 1: Construction Reports (from contractors) ───
 
 let activeWorkLevelFilter = null;
+let activeWorkStatusFilter = 'all';
+
+const ADMIN_WORK_STATUS_META = {
+  all: { label: 'ทั้งหมด', icon: 'fa-layer-group' },
+  planned: { label: 'วางแผน', icon: 'fa-calendar-days' },
+  'in-progress': { label: 'กำลังทำ', icon: 'fa-person-digging' },
+  delayed: { label: 'ล่าช้า', icon: 'fa-triangle-exclamation' },
+  completed: { label: 'เสร็จสิ้น', icon: 'fa-circle-check' },
+};
 
 function approvalStatusOf(project) {
   return project?.adminApprovalStatus === 'approved' ? 'approved' : 'pending';
@@ -25,15 +34,65 @@ function approvalBadge(status) {
   return `<span class="admin-approval-badge approval-${status}"><i class="fa-solid ${meta.icon}"></i> ${meta.label}</span>`;
 }
 
+function reviewProjects() {
+  return typeof projects === 'undefined'
+    ? []
+    : projects.filter((project) => approvalStatusOf(project) !== 'approved');
+}
+
+function workStatusBadge(status) {
+  const key = ADMIN_WORK_STATUS_META[status] ? status : 'planned';
+  const meta = ADMIN_WORK_STATUS_META[key];
+  return `<span class="admin-work-status-badge work-status-${key}"><i class="fa-solid ${meta.icon}"></i> ${meta.label}</span>`;
+}
+
+function renderWorkStatusFilters() {
+  const reportList = document.getElementById('constructionReportList');
+  if (!reportList) return;
+  let host = document.getElementById('adminWorkStatusFilters');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'adminWorkStatusFilters';
+    host.className = 'admin-work-status-filter';
+    reportList.before(host);
+  }
+
+  const allReviewProjects = reviewProjects();
+  const countSource = activeWorkLevelFilter
+    ? allReviewProjects.filter((project) => (project.workLevel || 'medium') === activeWorkLevelFilter)
+    : allReviewProjects;
+  host.innerHTML = `
+    <span class="admin-work-status-filter-title"><i class="fa-solid fa-filter"></i> กรองตามสถานะงาน</span>
+    <div class="admin-work-status-filter-list" role="tablist" aria-label="กรองรายงานตามสถานะงาน">
+      ${Object.entries(ADMIN_WORK_STATUS_META).map(([key, meta]) => {
+        const count = key === 'all' ? countSource.length : countSource.filter((project) => project.status === key).length;
+        const active = activeWorkStatusFilter === key;
+        return `<button type="button" class="admin-status-filter-btn work-status-${key}${active ? ' active' : ''}" data-work-status="${key}" role="tab" aria-selected="${active}">
+          <i class="fa-solid ${meta.icon}"></i><span>${meta.label}</span><strong>${count}</strong>
+        </button>`;
+      }).join('')}
+    </div>`;
+  host.querySelectorAll('[data-work-status]').forEach((button) => {
+    button.addEventListener('click', () => {
+      activeWorkStatusFilter = button.dataset.workStatus || 'all';
+      renderWorkStatusFilters();
+      renderWorkLevelOverview();
+      renderConstructionReportListOnly();
+    });
+  });
+}
+
 function renderWorkLevelOverview() {
   const box = document.getElementById('workLevelOverview');
-  if (!box || typeof projects === 'undefined' || typeof WORK_LEVEL_META === 'undefined') return;
+  if (!box || typeof WORK_LEVEL_META === 'undefined') return;
   const meta = WORK_LEVEL_META;
-  const reviewProjects = projects.filter((p) => approvalStatusOf(p) !== 'approved');
+  const statusFilteredProjects = activeWorkStatusFilter === 'all'
+    ? reviewProjects()
+    : reviewProjects().filter((project) => project.status === activeWorkStatusFilter);
   const levels = Object.keys(meta).sort((a, b) => meta[a].order - meta[b].order);
   box.innerHTML = levels.map((lvl) => {
     const m = meta[lvl];
-    const items = reviewProjects.filter((p) => (p.workLevel || 'medium') === lvl);
+    const items = statusFilteredProjects.filter((p) => (p.workLevel || 'medium') === lvl);
     const active = items.filter((p) => p.status === 'in-progress' || p.status === 'delayed').length;
     const isActive = activeWorkLevelFilter === lvl;
     return `<button type="button" class="construction-level-option level-${lvl} work-level-chip${isActive ? ' is-selected' : ''}" data-level="${lvl}" title="${m.desc}" aria-pressed="${isActive}">
@@ -52,6 +111,7 @@ function renderWorkLevelOverview() {
     chip.addEventListener('click', () => {
       activeWorkLevelFilter = activeWorkLevelFilter === chip.dataset.level ? null : chip.dataset.level;
       renderWorkLevelOverview();
+      renderWorkStatusFilters();
       renderConstructionReportListOnly();
     });
   });
@@ -72,7 +132,7 @@ function renderProjectCard(p, approved = false) {
         <span>${typeof displayPlaceName === 'function' ? displayPlaceName(p.roadName) : (p.roadName || '')} — ${p.contractor}</span>
       </div>
       <div class="admin-report-card-footer">
-        <span class="admin-report-status">สถานะ: ${statusLabelOf(p.status)}</span>
+        ${workStatusBadge(p.status)}
         ${approvalBadge(approval)}
         <span class="construction-level-badge level-${levelKey}">${level.icon} ${level.code} · ${level.label}</span>
       </div>
@@ -82,15 +142,16 @@ function renderProjectCard(p, approved = false) {
 function renderConstructionReportListOnly() {
   const container = document.getElementById('constructionReportList');
   if (!container) return;
-  const reviewProjects = typeof projects === 'undefined'
-    ? []
-    : projects.filter((p) => approvalStatusOf(p) !== 'approved');
-  const list = activeWorkLevelFilter
-    ? reviewProjects.filter((p) => (p.workLevel || 'medium') === activeWorkLevelFilter)
-    : reviewProjects;
+  let list = reviewProjects();
+  if (activeWorkLevelFilter) {
+    list = list.filter((project) => (project.workLevel || 'medium') === activeWorkLevelFilter);
+  }
+  if (activeWorkStatusFilter !== 'all') {
+    list = list.filter((project) => project.status === activeWorkStatusFilter);
+  }
 
   if (list.length === 0) {
-    container.innerHTML = `<div class="empty-state">${activeWorkLevelFilter ? 'ไม่มีรายงานในระดับนี้' : 'ไม่มีรายงานที่รอตรวจสอบ'}</div>`;
+    container.innerHTML = '<div class="empty-state">ไม่มีรายงานที่ตรงกับตัวกรองนี้</div>';
     return;
   }
   container.innerHTML = list.map((p) => renderProjectCard(p)).join('');
@@ -111,14 +172,14 @@ function renderApprovedReports() {
 }
 
 function renderConstructionReports() {
+  renderWorkStatusFilters();
   renderWorkLevelOverview();
   renderConstructionReportListOnly();
   renderApprovedReports();
 }
 
 function statusLabelOf(status) {
-  const map = { completed: 'เสร็จสิ้น', 'in-progress': 'กำลังทำ', delayed: 'ล่าช้า', planned: 'วางแผน' };
-  return map[status] || status;
+  return ADMIN_WORK_STATUS_META[status]?.label || status;
 }
 
 // Mockup fallback cover photo — used only when a project has no real photos attached.

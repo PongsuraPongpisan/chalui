@@ -4254,3 +4254,122 @@ body.approval-modal-open { overflow: hidden; }
 .admin-approval-actions {
   grid-template-columns: minmax(0, 1fr);
 }
+
+/* ─── Admin work-status filters and prominent status badges ─── */
+.admin-work-status-filter {
+  display: grid;
+  gap: 9px;
+  margin: 0 0 14px;
+  padding: 11px;
+  border: 1px solid #dce5df;
+  border-radius: 12px;
+  background: #f7faf8;
+}
+
+.admin-work-status-filter-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #37443e;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.admin-work-status-filter-title i { color: var(--teal); }
+
+.admin-work-status-filter-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.admin-status-filter-btn {
+  --work-status-color: #64748b;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 39px;
+  padding: 7px 8px;
+  border: 1px solid color-mix(in srgb, var(--work-status-color) 28%, #dce5df);
+  border-radius: 9px;
+  background: #ffffff;
+  color: #475569;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-status-filter-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-status-filter-btn > i { color: var(--work-status-color); }
+.admin-status-filter-btn > strong {
+  min-width: 20px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--work-status-color) 12%, white);
+  color: var(--work-status-color);
+  font-size: 0.65rem;
+  text-align: center;
+}
+
+.admin-status-filter-btn:hover,
+.admin-status-filter-btn.active {
+  border-color: var(--work-status-color);
+  background: color-mix(in srgb, var(--work-status-color) 10%, white);
+  color: color-mix(in srgb, var(--work-status-color) 80%, #1f2937);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--work-status-color) 12%, transparent);
+}
+
+.admin-status-filter-btn:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--work-status-color) 22%, transparent);
+  outline-offset: 2px;
+}
+
+.work-status-all { --work-status-color: #64748b; }
+.work-status-planned { --work-status-color: #2563eb; }
+.work-status-in-progress { --work-status-color: #d97706; }
+.work-status-delayed { --work-status-color: #dc2626; }
+.work-status-completed { --work-status-color: #16a34a; }
+
+.admin-work-status-badge,
+.admin-detail-work-status {
+  --work-status-color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 7px 11px;
+  border: 1px solid color-mix(in srgb, var(--work-status-color) 72%, white);
+  border-radius: 999px;
+  background: var(--work-status-color);
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 850;
+  line-height: 1.2;
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--work-status-color) 22%, transparent);
+}
+
+.admin-detail-work-status {
+  min-width: 112px;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 520px) {
+  .admin-work-status-filter-list {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 3px;
+    scrollbar-width: thin;
+  }
+
+  .admin-status-filter-btn { flex: 0 0 auto; min-width: 96px; }
+  .admin-report-card-footer .admin-work-status-badge { order: -1; }
+}
