@@ -46,22 +46,22 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       <section class="route-panel tool-panel map-ui glass-panel">
         <header class="tool-header">
-          <div><p class="eyebrow">Route Planner</p><h2>คำนวณเส้นทาง</h2></div>
+          <div><p class="eyebrow">วางแผนเส้นทาง</p><h2>คำนวณเส้นทาง</h2></div>
           <button class="panel-toggle hover-scale" id="toggleRoutePanel" type="button">-</button>
         </header>
         <div class="tool-body" id="routePanelBody">
           <div class="field-grid">
-            <label><span>ต้นทาง</span><input id="originInput" list="addressOptions" type="text" placeholder="เช่น Central Ladprao" autocomplete="off"></label>
-            <label><span>จุดหมาย</span><input id="destinationInput" list="addressOptions" type="text" placeholder="เช่น Don Mueang Airport" autocomplete="off"></label>
+            <label><span>ต้นทาง</span><input id="originInput" list="addressOptions" type="text" placeholder="เช่น เซ็นทรัลลาดพร้าว" autocomplete="off"></label>
+            <label><span>จุดหมาย</span><input id="destinationInput" list="addressOptions" type="text" placeholder="เช่น ท่าอากาศยานดอนเมือง" autocomplete="off"></label>
             <datalist id="addressOptions"></datalist>
           </div>
           <div class="route-action-row">
-            <button class="primary-action" id="calculateRoute" type="button">Calculate</button>
-            <button class="secondary-action" id="driveRoute" type="button"><i class="fa-solid fa-car-side"></i><span>Drive</span></button>
+            <button class="primary-action" id="calculateRoute" type="button">คำนวณ</button>
+            <button class="secondary-action" id="driveRoute" type="button"><i class="fa-solid fa-car-side"></i><span>เริ่มเดินทาง</span></button>
           </div>
           <div class="drive-control-row">
-            <label><span>Speed</span><select id="driveSpeed"><option value="1">1x</option><option value="5">5x</option><option value="10">10x</option></select></label>
-            <div class="drive-readout" id="driveReadout"><strong>Ready</strong><span>Distance and ETA appear during drive.</span></div>
+            <label><span>ความเร็วจำลอง</span><select id="driveSpeed"><option value="1">1 เท่า</option><option value="5">5 เท่า</option><option value="10">10 เท่า</option></select></label>
+            <div class="drive-readout" id="driveReadout"><strong>พร้อม</strong><span>ระยะทางและเวลาถึงโดยประมาณจะแสดงระหว่างการเดินทาง</span></div>
           </div>
           <div class="route-summary" id="routeSummary"><p>ใส่ต้นทางและจุดหมาย</p></div>
           <div class="travel-modes" id="travelModes"></div>
@@ -70,14 +70,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       </section>
 
       <div class="map-controls map-ui">
-        <button class="control-button hover-scale glass-panel" id="zoomIn" type="button" aria-label="Zoom in"><i class="fa-solid fa-plus"></i></button>
-        <button class="control-button hover-scale glass-panel" id="zoomOut" type="button" aria-label="Zoom out"><i class="fa-solid fa-minus"></i></button>
-        <button class="control-button hover-scale glass-panel" id="recenter" type="button" aria-label="Recenter"><i class="fa-solid fa-crosshairs"></i></button>
+        <button class="control-button hover-scale glass-panel" id="recenter" type="button" aria-label="กลับไปยังตำแหน่งเริ่มต้น"><i class="fa-solid fa-crosshairs"></i></button>
       </div>
 
       <div class="fab-stack map-ui">
-        <button class="fab-button hover-scale" id="placePinButton" type="button" aria-label="Place pin"><i class="fa-solid fa-thumbtack"></i></button>
-        <button class="fab-button report-fab hover-scale" id="createReportFab" type="button" aria-label="Report"><i class="fa-solid fa-flag"></i></button>
+        <button class="fab-button pin-drag-source" id="placePinButton" type="button" aria-label="ลากหมุดไปวางบนแผนที่" title="ลากหมุดไปวางบนแผนที่"><i class="fa-solid fa-thumbtack"></i></button>
+        <button class="fab-button report-fab hover-scale" id="createReportFab" type="button" aria-label="แจ้งเหตุ"><i class="fa-solid fa-flag"></i></button>
         <button class="fab-button chat-fab hover-scale" id="thaiLlmChatFab" type="button" aria-label="ย่านาง ผู้ช่วย AI" style="background:#5b21b6;color:white"><i class="fa-solid fa-comments"></i></button>
       </div>
 
@@ -116,7 +114,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <nav class="bottom-nav map-ui traveler-nav glass-panel" aria-label="เมนู">
         <a href="/" class="nav-item hover-scale"><i class="fa-solid fa-arrow-left"></i><span>เลือก role</span></a>
         <button class="nav-item active hover-scale" data-nav="home" type="button"><i class="fa-solid fa-map"></i><span>แผนที่</span></button>
-        <button class="nav-item hover-scale" data-nav="alerts" type="button"><i class="fa-solid fa-bell"></i><span>แจ้งเตือน</span></button>
         <button class="nav-item hover-scale" data-nav="reports" type="button"><i class="fa-solid fa-flag"></i><span>แจ้งเหตุ</span></button>
       </nav>
 
@@ -200,27 +197,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           <button class="submission-success-action" id="confirmReportSuccess" type="button">ตกลง</button>
         </div>
       </div>
-      <section class="reports-panel map-ui" id="alertsPanel" aria-hidden="true">
-        <header class="detail-header"><div><p class="eyebrow">Notifications</p><h2>การแจ้งเตือน</h2></div><button class="panel-toggle" id="closeAlerts" type="button">X</button></header>
-        <div class="reports-body">
-          <p style="font-size:0.82rem;color:#68746f;margin:0 0 10px">แจ้งเตือนเมื่อเข้าใกล้จุดก่อสร้างในรัศมี 500 ม. — จุดที่ไม่ผ่านมาตรฐานจะเตือนระดับอันตราย</p>
-          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-            <button class="secondary-action" id="simulateAlert" type="button"><i class="fa-solid fa-bell"></i><span>จำลองแจ้งเตือน</span></button>
-          </div>
-          <div class="report-list" id="alertHistoryList"></div>
-        </div>
-      </section>
     </main>
   </div>
 </BaseLayout>
 
 <style is:global>
   .traveler-nav {
-    grid-template-columns: repeat(4, minmax(72px, 104px)) !important;
+    grid-template-columns: repeat(3, minmax(72px, 104px)) !important;
   }
   @media (max-width: 700px) {
     .traveler-nav {
-      grid-template-columns: repeat(4, 1fr) !important;
+      grid-template-columns: repeat(3, 1fr) !important;
     }
   }
 </style>

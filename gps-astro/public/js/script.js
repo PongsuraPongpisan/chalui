@@ -73,10 +73,10 @@ const addressBook = [
 ];
 
 const travelModes = [
-  { id: "car", label: "Car", speedKmh: 42, setup: 4 },
-  { id: "motorbike", label: "Motorbike", speedKmh: 36, setup: 3 },
-  { id: "transit", label: "Transit", speedKmh: 28, setup: 12 },
-  { id: "walk", label: "Walk", speedKmh: 4.6, setup: 0 }
+  { id: "car", label: "รถยนต์", speedKmh: 42, setup: 4 },
+  { id: "motorbike", label: "จักรยานยนต์", speedKmh: 36, setup: 3 },
+  { id: "transit", label: "ขนส่งสาธารณะ", speedKmh: 28, setup: 12 },
+  { id: "walk", label: "เดิน", speedKmh: 4.6, setup: 0 }
 ];
 
 const thaiPlaceNames = {
@@ -164,7 +164,6 @@ let userMarker = null;
 let fallbackZoom = 1;
 let activeRoute = null;
 let activeRouteEstimate = null;
-let placePinMode = false;
 let placedPinMarker = null;
 let placedPinFallback = null;
 let placedPinCoords = null;
@@ -616,7 +615,7 @@ async function geocodeAddress(value) {
   if (!query) {
     return null;
   }
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=th&q=${encodeURIComponent(query)}`;
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=th&accept-language=th&q=${encodeURIComponent(query)}`;
   const response = await fetch(url, { headers: { "Accept": "application/json" } });
   if (!response.ok) {
     return null;
@@ -909,25 +908,26 @@ async function buildRouteEstimate(origin, destination) {
 
 function formatMinutes(minutes) {
   if (minutes < 60) {
-    return `${Math.round(minutes)} min`;
+    return `${Math.round(minutes)} นาที`;
   }
   const hours = Math.floor(minutes / 60);
   const remaining = Math.round(minutes % 60);
-  return remaining ? `${hours} hr ${remaining} min` : `${hours} hr`;
+  return remaining ? `${hours} ชั่วโมง ${remaining} นาที` : `${hours} ชั่วโมง`;
 }
 
 function renderRouteResult(origin, destination, estimate) {
   const hasBlockers = estimate.blockers.length > 0;
-  const routeSource = estimate.source === "osrm" ? "ตามถนนจริงจาก OpenStreetMap/OSRM" : "เส้นทางสาธิตตามแนวถนนหลัก";
+  const routeSource = estimate.source === "osrm" ? "เส้นทางตามถนนจริงจาก OpenStreetMap/OSRM" : "เส้นทางจำลองตามแนวถนนหลัก";
   const delayText = hasBlockers
     ? `พบงานก่อสร้างบนหรือชิดถนนที่ต้องผ่าน ${estimate.blockers.length} จุด`
     : "ไม่พบงานก่อสร้างที่รบกวนเส้นทางหลัก";
-
+  const originName = displayBilingualText(origin.name);
+  const destinationName = displayBilingualText(destination.name);
   const bridgePercent = (estimate.recommended.actionBridgeScore * 100).toFixed(0);
 
   routeSummary.innerHTML = `
-    <strong>${origin.name} → ${destination.name}</strong>
-    <p>${estimate.recommended.distanceKm.toFixed(1)} km • ${delayText}</p>
+    <strong>${originName} → ${destinationName}</strong>
+    <p>${estimate.recommended.distanceKm.toFixed(1)} กม. • ${delayText}</p>
     <p class="route-source">${routeSource} • <strong>ความน่าเชื่อถือเส้นทาง: ${bridgePercent}% (ActionBridge)</strong></p>
   `;
 
@@ -936,12 +936,14 @@ function renderRouteResult(origin, destination, estimate) {
       ? estimate.recommended.durationMinutes
       : estimate.recommended.distanceKm / mode.speedKmh * 60;
     const minutes = baseMinutes + mode.setup + (hasBlockers ? Math.min(8, estimate.recommended.delayMinutes * 0.3) : 0);
-    const saveText = estimate.savedMinutes > 0 ? `save ~${estimate.savedMinutes} min` : "recommended route";
+    const saveText = estimate.savedMinutes > 0
+      ? `ประหยัดเวลาประมาณ ${estimate.savedMinutes} นาที`
+      : "เส้นทางแนะนำ";
     return `
       <article class="mode-card">
         <span>${mode.label}</span>
         <strong>${formatMinutes(minutes)}</strong>
-        <small>${estimate.recommended.distanceKm.toFixed(1)} km • ${saveText}</small>
+        <small>${estimate.recommended.distanceKm.toFixed(1)} กม. • ${saveText}</small>
       </article>
     `;
   }).join("");
@@ -949,11 +951,11 @@ function renderRouteResult(origin, destination, estimate) {
   if (hasBlockers) {
     const affected = estimate.blockers
       .slice(0, 4)
-      .map((project) => `${project.name} (${project.roadName})`)
+      .map((project) => `${displayBilingualText(project.name)} (${displayPlaceName(project.roadName)})`)
       .join(", ");
     avoidanceBox.innerHTML = `
       <strong>คำแนะนำเส้นทาง</strong>
-      <p>เส้นทางนี้ผ่านบริเวณงานก่อสร้าง ให้เผื่อเวลาเพิ่ม หรือใช้ทางเลือกที่ระบบเน้นบนแผนที่เมื่อมี route alternative ที่เลี่ยงได้</p>
+      <p>เส้นทางนี้ผ่านบริเวณงานก่อสร้าง ควรเผื่อเวลาเพิ่ม หรือใช้เส้นทางทางเลือกที่ระบบแสดงบนแผนที่เมื่อสามารถหลีกเลี่ยงได้</p>
       <p class="affected-route">พื้นที่กระทบ: ${affected}</p>
     `;
   } else {
@@ -1093,7 +1095,13 @@ function createCarIcon(bearing) {
 function initLeafletMap() {
   map = L.map("map", {
     zoomControl: false,
-    minZoom: 5
+    minZoom: 5,
+    scrollWheelZoom: true,
+    touchZoom: true,
+    dragging: true,
+    doubleClickZoom: true,
+    boxZoom: true,
+    keyboard: true
   }).setView(thailandCenter, 11);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -1185,7 +1193,7 @@ function drawLeafletRoute(origin, destination, estimate) {
     fillColor: "#ffffff",
     fillOpacity: 1,
     weight: 3
-  }).addTo(routeLayer).bindTooltip("Origin");
+  }).addTo(routeLayer).bindTooltip("ต้นทาง");
 
   L.circleMarker([destination.lat, destination.lng], {
     radius: 6,
@@ -1193,7 +1201,7 @@ function drawLeafletRoute(origin, destination, estimate) {
     fillColor: "#ffffff",
     fillOpacity: 1,
     weight: 3
-  }).addTo(routeLayer).bindTooltip("Destination");
+  }).addTo(routeLayer).bindTooltip("จุดหมาย");
 
   map.fitBounds(bounds.pad(0.18), { maxZoom: 13 });
 }
@@ -1288,12 +1296,12 @@ function updateDriveReadout(remainingKm, etaMinutes, speedFactor, isRunning) {
     const pred = window.karcForecaster.forecast("route-current");
     if (pred) {
       const color = pred < 25 ? "#ef4444" : pred < 40 ? "#f59e0b" : "#22c55e";
-      karcInfo = `<br><span style="color:${color}">🔮 KARC: ${pred.toFixed(0)} กม./ชม.</span>`;
+      karcInfo = `<br><span style="color:${color}">🔮 ความเร็วคาดการณ์ KARC: ${pred.toFixed(0)} กม./ชม.</span>`;
     }
   }
   driveReadout.innerHTML = `
-    <strong>${isRunning ? `Driving ${speedFactor}x` : "Drive complete"}</strong>
-    <span>${Math.max(0, remainingKm).toFixed(1)} km left • ETA ${formatMinutes(Math.max(0, etaMinutes))}${karcInfo}</span>
+    <strong>${isRunning ? `กำลังเดินทางที่ความเร็ว ${speedFactor} เท่า` : "ถึงจุดหมายแล้ว"}</strong>
+    <span>เหลือ ${Math.max(0, remainingKm).toFixed(1)} กม. • ถึงโดยประมาณใน ${formatMinutes(Math.max(0, etaMinutes))}${karcInfo}</span>
   `;
 }
 
@@ -1304,7 +1312,7 @@ function stopDriveSimulation(message) {
   driveState = null;
   const button = document.getElementById("driveRoute");
   if (button) {
-    button.querySelector("span").textContent = "Drive";
+    button.querySelector("span").textContent = "เริ่มเดินทาง";
   }
   if (message) {
     showToast(message);
@@ -1423,7 +1431,7 @@ function stepDriveSimulation(timestamp) {
   }
 
   if (remainingKm <= 0.01) {
-    stopDriveSimulation("Drive simulation complete");
+    stopDriveSimulation("ถึงจุดหมายแล้ว");
     return;
   }
   driveState.frameId = window.requestAnimationFrame(stepDriveSimulation);
@@ -1431,7 +1439,7 @@ function stepDriveSimulation(timestamp) {
 
 function startDriveSimulation(route) {
   if (!route || !route.estimate) {
-    showToast("Calculate a route before driving");
+    showToast("กรุณาคำนวณเส้นทางก่อนเริ่มเดินทาง");
     return;
   }
   stopDriveSimulation();
@@ -1458,13 +1466,13 @@ function startDriveSimulation(route) {
     startedAt: 0,
     frameId: 0
   };
-  document.getElementById("driveRoute").querySelector("span").textContent = "Stop";
+  document.getElementById("driveRoute").querySelector("span").textContent = "หยุด";
   driveState.frameId = window.requestAnimationFrame(stepDriveSimulation);
 }
 
 async function driveRoute() {
   if (driveState) {
-    stopDriveSimulation("Drive simulation stopped");
+    stopDriveSimulation("หยุดการจำลองการเดินทางแล้ว");
     return;
   }
   if (!activeRoute || !activeRoute.estimate) {
@@ -1669,20 +1677,6 @@ function openReportsPanel() {
   populateReportTimestamp();
 }
 
-function openAlertsPanel() {
-  const p = document.getElementById("alertsPanel");
-  if (!p) return;
-  p.classList.add("visible");
-  p.setAttribute("aria-hidden", "false");
-}
-
-function closeAlertsPanel() {
-  const p = document.getElementById("alertsPanel");
-  if (!p) return;
-  p.classList.remove("visible");
-  p.setAttribute("aria-hidden", "true");
-}
-
 function closeReportsPanel() {
   if (!reportsPanel) return;
   reportsPanel.classList.remove("visible");
@@ -1846,27 +1840,25 @@ function openFallbackReportPopup(report) {
 }
 
 function copyCoordinates(lat, lng) {
-  const value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(value).then(
-      () => showToast("Copied coordinates"),
-      () => showToast(value)
-    );
-  } else {
-    showToast(value);
+  const value = `${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)}`;
+  const notifyCopied = () => showToast(`ปักหมุดและคัดลอกพิกัดแล้ว: ${value}`);
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(value).then(notifyCopied, () => showToast(`บันทึกพิกัดแล้ว: ${value}`));
+    return;
   }
+  showToast(`บันทึกพิกัดแล้ว: ${value}`);
 }
 
 function pinPopupTemplate(lat, lng) {
   return `
     <article class="project-popup">
-      <h3>Placed Pin</h3>
+      <h3>ตำแหน่งหมุด</h3>
       <dl>
-        <dt>Latitude</dt><dd>${lat.toFixed(6)}</dd>
-        <dt>Longitude</dt><dd>${lng.toFixed(6)}</dd>
+        <dt>ละติจูด</dt><dd>${lat.toFixed(6)}</dd>
+        <dt>ลองจิจูด</dt><dd>${lng.toFixed(6)}</dd>
       </dl>
       <button class="detail-button" type="button" data-copy-coords="${lat.toFixed(6)},${lng.toFixed(6)}">
-        Copy Coordinates
+        คัดลอกพิกัด
       </button>
     </article>
   `;
@@ -1883,6 +1875,7 @@ function setPlacedPin(lat, lng, openPopup = true) {
       placedPinMarker.on("dragend", () => {
         const coords = placedPinMarker.getLatLng();
         setPlacedPin(coords.lat, coords.lng);
+        copyCoordinates(coords.lat, coords.lng);
       });
     } else {
       placedPinMarker.setLatLng([lat, lng]);
@@ -1930,14 +1923,84 @@ function openFallbackPinPopup(lat, lng) {
   popup.classList.add("visible");
 }
 
-function togglePlacePinMode() {
-  placePinMode = !placePinMode;
-  document.getElementById("placePinButton").classList.toggle("active", placePinMode);
-  showToast(placePinMode ? "Place pin mode: click the map or drag the pin." : "Place pin mode off");
-  if (placePinMode && hasLeaflet && !placedPinMarker) {
-    const center = map.getCenter();
-    setPlacedPin(center.lat, center.lng);
+function mapCoordinatesFromClientPoint(clientX, clientY) {
+  if (!mapElement) return null;
+  const rect = mapElement.getBoundingClientRect();
+  const inside = clientX >= rect.left && clientX <= rect.right
+    && clientY >= rect.top && clientY <= rect.bottom;
+  if (!inside) return null;
+  if (hasLeaflet && map) {
+    const point = L.point(clientX - rect.left, clientY - rect.top);
+    const coords = map.containerPointToLatLng(point);
+    return { lat: coords.lat, lng: coords.lng };
   }
+  return mapPointFromFallbackEvent({ clientX, clientY });
+}
+
+function initializePlacePinDrag() {
+  const button = document.getElementById("placePinButton");
+  if (!button || !mapElement) return;
+
+  button.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.preventDefault();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    let hasMoved = false;
+    const ghost = document.createElement("div");
+    ghost.className = "pin-drag-ghost";
+    ghost.innerHTML = '<i class="fa-solid fa-thumbtack"></i>';
+    document.body.appendChild(ghost);
+    button.classList.add("dragging");
+    mapElement.classList.add("pin-drop-active");
+
+    const moveGhost = (clientX, clientY) => {
+      ghost.style.left = `${clientX}px`;
+      ghost.style.top = `${clientY}px`;
+      const coords = mapCoordinatesFromClientPoint(clientX, clientY);
+      mapElement.classList.toggle("pin-drop-hover", hasMoved && Boolean(coords));
+    };
+    moveGhost(startX, startY);
+
+    const onPointerMove = (moveEvent) => {
+      if (moveEvent.pointerId !== event.pointerId) return;
+      if (Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY) > 8) {
+        hasMoved = true;
+      }
+      moveGhost(moveEvent.clientX, moveEvent.clientY);
+    };
+
+    const finishDrag = (endEvent) => {
+      if (endEvent.pointerId !== event.pointerId) return;
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", finishDrag);
+      window.removeEventListener("pointercancel", cancelDrag);
+      ghost.remove();
+      button.classList.remove("dragging");
+      mapElement.classList.remove("pin-drop-active", "pin-drop-hover");
+      const coords = hasMoved ? mapCoordinatesFromClientPoint(endEvent.clientX, endEvent.clientY) : null;
+      if (!coords) {
+        showToast("ลากไอคอนหมุดไปวางบนตำแหน่งที่ต้องการบนแผนที่");
+        return;
+      }
+      setPlacedPin(coords.lat, coords.lng);
+      copyCoordinates(coords.lat, coords.lng);
+    };
+
+    const cancelDrag = (cancelEvent) => {
+      if (cancelEvent.pointerId !== event.pointerId) return;
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", finishDrag);
+      window.removeEventListener("pointercancel", cancelDrag);
+      ghost.remove();
+      button.classList.remove("dragging");
+      mapElement.classList.remove("pin-drop-active", "pin-drop-hover");
+    };
+
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
+    window.addEventListener("pointerup", finishDrag);
+    window.addEventListener("pointercancel", cancelDrag);
+  });
 }
 
 function mapPointFromFallbackEvent(event) {
@@ -1952,12 +2015,6 @@ function mapPointFromFallbackEvent(event) {
     lat: latMax - y * (latMax - latMin),
     lng: lngMin + x * (lngMax - lngMin)
   };
-}
-
-function handleMapPlacement(lat, lng) {
-  if (placePinMode) {
-    setPlacedPin(lat, lng);
-  }
 }
 
 async function submitReport(event) {
@@ -2594,7 +2651,6 @@ function showPanelUnified(name) {
 
   // Hide all panels first
   closeReportsPanel();
-  closeAlertsPanel();
   const aiPanel = document.getElementById("aiPanel");
   const adminPanel = document.getElementById("adminPanel");
   if (aiPanel) aiPanel.setAttribute("aria-hidden", "true");
@@ -2615,11 +2671,6 @@ function showPanelUnified(name) {
     if (adminPanel) adminPanel.setAttribute("aria-hidden", "false");
     if (window.AdminModule && window.AdminModule.renderConstructionReports) {
       window.AdminModule.renderConstructionReports();
-    }
-  } else if (name === "alerts") {
-    openAlertsPanel();
-    if (window.DriverAlerts && window.DriverAlerts.renderAlertHistory) {
-      window.DriverAlerts.renderAlertHistory();
     }
   }
   // name === "home" → all panels closed, just the map
@@ -2642,8 +2693,6 @@ function bindEvents() {
     });
   }
   on("locateButton", "click", locateUser);
-  on("zoomIn", "click", () => hasLeaflet ? map.zoomIn() : setFallbackZoom(fallbackZoom + 1));
-  on("zoomOut", "click", () => hasLeaflet ? map.zoomOut() : setFallbackZoom(fallbackZoom - 1));
   on("recenter", "click", () => {
     if (hasLeaflet) {
       map.flyTo(thailandCenter, 11);
@@ -2657,21 +2706,9 @@ function bindEvents() {
   on("closeSidebar", "click", () => sidebar && sidebar.classList.remove("open"));
   on("calculateRoute", "click", calculateRoute);
   on("driveRoute", "click", driveRoute);
-  on("placePinButton", "click", togglePlacePinMode);
+  initializePlacePinDrag();
   on("createReportFab", "click", openReportsPanel);
   on("closeReports", "click", closeReportsPanel);
-  on("closeAlerts", "click", () => showPanelUnified("home"));
-  on("simulateAlert", "click", () => {
-    // Demo: trigger a proximity alert from a nearby active/delayed zone
-    const target = projects.find((p) => p.status === "delayed") ||
-      projects.find((p) => p.status === "in-progress");
-    if (target && window.DriverAlerts && window.DriverAlerts.simulateProximity) {
-      window.DriverAlerts.simulateProximity(target.lat, target.lng);
-    }
-    if (window.DriverAlerts && window.DriverAlerts.renderAlertHistory) {
-      window.DriverAlerts.renderAlertHistory();
-    }
-  });
   on("reportForm", "submit", submitReport);
   on("detailImageUpload", "change", handleDetailImageUpload);
   on("reportCameraImage", "change", handleReportImageUpload);
@@ -2703,17 +2740,6 @@ function bindEvents() {
       button.addEventListener("click", () => showPanelUnified(button.dataset.nav));
     }
   });
-  if (hasLeaflet && map) {
-    map.on("click", (event) => handleMapPlacement(event.latlng.lat, event.latlng.lng));
-  } else if (mapElement) {
-    mapElement.addEventListener("click", (event) => {
-      if (event.target.closest(".fallback-marker, .fallback-popup")) {
-        return;
-      }
-      const coords = mapPointFromFallbackEvent(event);
-      handleMapPlacement(coords.lat, coords.lng);
-    });
-  }
   on("addConstruction", "click", addConstructionProject);
   on("constructionRoad", "change", fillConstructionCoordinates);
   on("closeDetail", "click", closeProjectDetail);
