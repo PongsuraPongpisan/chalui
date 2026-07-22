@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">ภาพตัวอย่างโครงการก่อสร้าง</title>
+  <desc id="desc">ถนนในเขตก่อสร้าง มีรถขุด กรวยจราจร และแนวกั้นงาน</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#bfe4ea"/><stop offset="1" stop-color="#eef7f4"/></linearGradient>
+    <linearGradient id="road" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#4b5563"/><stop offset="1" stop-color="#202a33"/></linearGradient>
+    <linearGradient id="machine" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fbbf24"/><stop offset="1" stop-color="#d97706"/></linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#sky)"/>
+  <circle cx="970" cy="112" r="62" fill="#fff3b0" opacity=".9"/>
+  <path d="M0 315 145 260l120 40 140-82 126 82 166-98 157 102 165-70 181 82v110H0Z" fill="#7da49a" opacity=".52"/>
+  <g fill="#6b8d84" opacity=".72"><rect x="62" y="220" width="92" height="130"/><rect x="169" y="185" width="120" height="165"/><rect x="935" y="198" width="95" height="152"/><rect x="1046" y="235" width="116" height="115"/></g>
+  <path d="M0 675V405l1200-32v302Z" fill="url(#road)"/>
+  <path d="m0 548 1200-52v22L0 575Z" fill="#f8fafc" opacity=".85"/>
+  <path d="m95 608 172-9m115-8 172-9m115-8 172-9m115-8 172-9" stroke="#f8fafc" stroke-width="16" stroke-linecap="round"/>
+  <g transform="translate(390 248)"><ellipse cx="220" cy="269" rx="185" ry="23" fill="#111827" opacity=".22"/><rect x="135" y="155" width="205" height="91" rx="16" fill="url(#machine)"/><rect x="188" y="92" width="112" height="95" rx="12" fill="#f59e0b"/><path d="M204 107h76v59h-76Z" fill="#29505b"/><path d="m155 173-98-72 18-28 127 80Z" fill="#e59a0a"/><path d="m64 80-40 6 11 63 56-18Z" fill="#c56b0a"/><rect x="105" y="222" width="270" height="43" rx="20" fill="#1f2937"/><circle cx="159" cy="243" r="24" fill="#0f172a"/><circle cx="320" cy="243" r="24" fill="#0f172a"/></g>
+  <g fill="#f97316" stroke="#fff" stroke-width="6"><path d="m125 528 33-95 33 95Z"/><path d="m267 520 33-95 33 95Z"/><path d="m892 498 33-95 33 95Z"/><path d="m1030 490 33-95 33 95Z"/></g>
+  <g stroke="#f8fafc" stroke-width="11"><path d="M139 483h38M281 475h38M906 453h38M1044 445h38"/></g>
+  <rect x="34" y="30" width="360" height="76" rx="18" fill="#15382a" opacity=".92"/>
+  <text x="66" y="78" fill="#fff" font-family="Tahoma, Arial, sans-serif" font-size="30" font-weight="700">ภาพตัวอย่างโครงการก่อสร้าง</text>
+</svg>

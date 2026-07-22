@@ -4,39 +4,40 @@ import ProjectReviews from '../components/ProjectReviews.astro';
 ---
 <BaseLayout title="ผู้เดินทาง" role="traveler">
   <div class="app-shell">
-    <aside class="sidebar" aria-label="Project list">
+    <aside class="sidebar" aria-label="รายการโครงการ">
       <header class="brand-panel">
         <div>
-          <p class="eyebrow">DOH Construction GPS</p>
+          <p class="eyebrow">ระบบ GPS งานก่อสร้าง กรมทางหลวง</p>
           <h1>โครงการก่อสร้าง</h1>
         </div>
-        <button class="icon-button mobile-close" id="closeSidebar" aria-label="Close">
+        <button class="icon-button mobile-close" id="closeSidebar" aria-label="ปิดรายการ">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </header>
-      <section class="summary-grid" aria-label="Summary">
-        <div class="summary-item"><span id="totalProjects">0</span><small>Projects</small></div>
-        <div class="summary-item"><span id="activeProjects">0</span><small>Active</small></div>
-        <div class="summary-item"><span id="delayedProjects">0</span><small>Delayed</small></div>
+      <section class="summary-grid" aria-label="สรุปโครงการ">
+        <div class="summary-item"><span id="totalProjects">0</span><small>โครงการทั้งหมด</small></div>
+        <div class="summary-item"><span id="activeProjects">0</span><small>กำลังดำเนินการ</small></div>
+        <div class="summary-item"><span id="delayedProjects">0</span><small>ล่าช้า</small></div>
       </section>
-      <div class="filter-row" role="tablist">
-        <button class="filter-chip active" data-filter="all" type="button">All</button>
-        <button class="filter-chip" data-filter="in-progress" type="button">Progress</button>
-        <button class="filter-chip" data-filter="delayed" type="button">Delayed</button>
-        <button class="filter-chip" data-filter="planned" type="button">Planned</button>
+      <div class="filter-row" role="tablist" aria-label="กรองตามสถานะโครงการ">
+        <button class="filter-chip active" data-filter="all" type="button">ทั้งหมด</button>
+        <button class="filter-chip" data-filter="in-progress" type="button">กำลังดำเนินการ</button>
+        <button class="filter-chip" data-filter="delayed" type="button">ล่าช้า</button>
+        <button class="filter-chip" data-filter="planned" type="button">วางแผน</button>
+        <button class="filter-chip" data-filter="completed" type="button">เสร็จสิ้น</button>
       </div>
-      <section class="project-list" id="projectList" aria-label="Projects"></section>
+      <section class="project-list" id="projectList" aria-label="โครงการ"></section>
     </aside>
 
     <main class="map-workspace">
       <div class="top-bar map-ui">
-        <button class="icon-button sidebar-toggle hover-scale glass-panel" id="openSidebar" aria-label="Open list">
+        <button class="icon-button sidebar-toggle hover-scale glass-panel" id="openSidebar" aria-label="เปิดรายการโครงการ">
           <i class="fa-solid fa-list"></i>
         </button>
         <form class="search-box glass-panel hover-scale" id="searchForm" role="search">
           <i class="fa-solid fa-magnifying-glass"></i>
           <input id="searchInput" type="search" placeholder="ค้นหาโครงการ ถนน จังหวัด" autocomplete="off">
-          <button class="search-submit hover-scale" type="submit">Search</button>
+          <button class="search-submit hover-scale" type="submit">ค้นหา</button>
         </form>
         <button class="icon-button hover-scale glass-panel" id="locateButton" aria-label="ตำแหน่งปัจจุบัน">
           <i class="fa-solid fa-location-crosshairs"></i>
@@ -90,7 +91,7 @@ import ProjectReviews from '../components/ProjectReviews.astro';
               <h3 style="margin:0; font-size:0.95rem; font-weight:600; letter-spacing:-0.2px">ย่านาง · ผู้ช่วยรู้รอบก่อนเดินทาง</h3>
             </div>
           </div>
-          <button class="panel-close-btn" id="closeChatPanel" type="button" style="background:rgba(255,255,255,0.2); border:none; color:white; cursor:pointer; border-radius:50%; width:24px; height:24px; display:flex; justify-content:center; align-items:center; font-size:0.75rem; padding:0; outline:none; transition:background 0.2s" aria-label="Close Chat">
+          <button class="panel-close-btn" id="closeChatPanel" type="button" style="background:rgba(255,255,255,0.2); border:none; color:white; cursor:pointer; border-radius:50%; width:24px; height:24px; display:flex; justify-content:center; align-items:center; font-size:0.75rem; padding:0; outline:none; transition:background 0.2s" aria-label="ปิดผู้ช่วย AI">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </header>
@@ -107,13 +108,13 @@ import ProjectReviews from '../components/ProjectReviews.astro';
 
       <section class="legend map-ui glass-panel">
         <div><span class="legend-dot completed"></span>เสร็จสิ้น</div>
-        <div><span class="legend-dot in-progress"></span>กำลังทำ</div>
+        <div><span class="legend-dot in-progress"></span>กำลังดำเนินการ</div>
         <div><span class="legend-dot delayed"></span>ล่าช้า</div>
         <div><span class="legend-dot planned"></span>วางแผน</div>
       </section>
 
       <nav class="bottom-nav map-ui traveler-nav glass-panel" aria-label="เมนู">
-        <a href="/" class="nav-item hover-scale"><i class="fa-solid fa-arrow-left"></i><span>เลือก role</span></a>
+        <a href="/" class="nav-item hover-scale"><i class="fa-solid fa-arrow-left"></i><span>เลือกบทบาท</span></a>
         <button class="nav-item active hover-scale" data-nav="home" type="button"><i class="fa-solid fa-map"></i><span>แผนที่</span></button>
         <button class="nav-item hover-scale" data-nav="reports" type="button"><i class="fa-solid fa-flag"></i><span>แจ้งเหตุ</span></button>
       </nav>
@@ -132,10 +133,11 @@ import ProjectReviews from '../components/ProjectReviews.astro';
           </header>
           <div class="detail-body citizen-project-detail-body">
             <section class="report-section report-detail-card citizen-gallery-card">
-              <h2 class="report-section-title"><i class="fa-solid fa-camera"></i> อัลบั้มรูปตรวจโครงการ</h2>
+              <h2 class="report-section-title"><i class="fa-solid fa-camera"></i> อัลบั้มภาพโครงการก่อสร้าง</h2>
               <div class="listing-cover citizen-detail-cover" id="detailGallery">
-                <img class="listing-cover-img" id="detailGalleryImage" alt="รูปตรวจโครงการ" hidden>
-                <div class="citizen-gallery-empty" id="detailGalleryEmpty"><i class="fa-regular fa-images"></i><span>ยังไม่มีรูปตรวจโครงการ</span></div>
+                <img class="listing-cover-img" id="detailGalleryImage" alt="ภาพโครงการก่อสร้าง" hidden>
+                <div class="citizen-gallery-empty" id="detailGalleryEmpty"><i class="fa-regular fa-images"></i><span>ยังไม่มีภาพโครงการก่อสร้าง</span></div>
+                <span class="citizen-gallery-sample" id="detailGallerySample" hidden>ภาพตัวอย่างโครงการก่อสร้าง</span>
                 <button class="listing-cover-arrow prev" id="detailGalleryPrev" type="button" aria-label="รูปก่อนหน้า" hidden><i class="fa-solid fa-chevron-left"></i></button>
                 <button class="listing-cover-arrow next" id="detailGalleryNext" type="button" aria-label="รูปถัดไป" hidden><i class="fa-solid fa-chevron-right"></i></button>
                 <span class="listing-cover-counter" id="detailGalleryCounter" hidden>0/0</span>
@@ -147,7 +149,7 @@ import ProjectReviews from '../components/ProjectReviews.astro';
               <h2 class="report-section-title"><i class="fa-solid fa-circle-info"></i> รายละเอียดโครงการ</h2>
               <dl class="detail-list report-detail-list">
                 <dt>ประเภทงาน</dt><dd id="detailType">-</dd>
-                <dt>GPS</dt><dd id="detailGps">-</dd>
+                <dt>พิกัด GPS</dt><dd id="detailGps">-</dd>
                 <dt>ขอบเขต</dt><dd id="detailBoundary">-</dd>
                 <dt>เวลารายงาน</dt><dd id="detailTimestamp">-</dd>
                 <dt>เริ่มงาน</dt><dd id="detailStart">-</dd>

@@ -9,10 +9,10 @@ if (!_mapEl) {
 }
 
 const statuses = {
-  completed: { label: "Completed", icon: "fa-check", abbr: "C", color: "#23a455" },
-  "in-progress": { label: "In Progress", icon: "fa-person-digging", abbr: "P", color: "#f1b12c" },
-  delayed: { label: "Delayed", icon: "fa-triangle-exclamation", abbr: "D", color: "#df4a43" },
-  planned: { label: "Planned", icon: "fa-calendar-days", abbr: "N", color: "#3378dc" }
+  completed: { label: "เสร็จสิ้น", icon: "fa-check", abbr: "ส", color: "#23a455" },
+  "in-progress": { label: "กำลังดำเนินการ", icon: "fa-person-digging", abbr: "ก", color: "#f1b12c" },
+  delayed: { label: "ล่าช้า", icon: "fa-triangle-exclamation", abbr: "ล", color: "#df4a43" },
+  planned: { label: "วางแผน", icon: "fa-calendar-days", abbr: "ว", color: "#3378dc" }
 };
 
 const roadAnchors = [
@@ -488,20 +488,23 @@ const DETAIL_CHECKPOINTS = [
   { key: "detour", num: 7, icon: "fa-diamond-turn-right", label: "ทางเบี่ยง" },
   { key: "construction_zone", num: 8, icon: "fa-map-location-dot", label: "เขตก่อสร้าง" }
 ];
+const DETAIL_FALLBACK_PHOTO = "/images/construction-project-placeholder.svg";
 let detailGalleryPhotos = [];
 let detailGalleryIndex = 0;
+let detailGalleryUsesFallback = false;
 let detailLightboxPhotos = [];
 let detailLightboxIndex = 0;
 
 function normalizeDetailPhotos(value) {
   return Array.isArray(value)
-    ? value.filter((photo) => typeof photo === "string" && (/^data:image\//.test(photo) || /^https:\/\//.test(photo)))
+    ? value.filter((photo) => typeof photo === "string" && (/^data:image\//.test(photo) || /^https:\/\//.test(photo) || /^\/images\//.test(photo)))
     : [];
 }
 
 function renderDetailGalleryFrame() {
   const image = document.getElementById("detailGalleryImage");
   const empty = document.getElementById("detailGalleryEmpty");
+  const sample = document.getElementById("detailGallerySample");
   const counter = document.getElementById("detailGalleryCounter");
   const previous = document.getElementById("detailGalleryPrev");
   const next = document.getElementById("detailGalleryNext");
@@ -509,13 +512,23 @@ function renderDetailGalleryFrame() {
   if (image) {
     image.hidden = !hasPhotos;
     if (hasPhotos) {
+      image.onerror = () => {
+        image.onerror = null;
+        detailGalleryPhotos[detailGalleryIndex] = DETAIL_FALLBACK_PHOTO;
+        image.src = DETAIL_FALLBACK_PHOTO;
+        if (sample) sample.hidden = false;
+      };
       image.src = detailGalleryPhotos[detailGalleryIndex];
-      image.alt = `รูปตรวจโครงการ รูปที่ ${detailGalleryIndex + 1}`;
+      image.alt = detailGalleryUsesFallback
+        ? "ภาพตัวอย่างโครงการก่อสร้าง"
+        : `ภาพโครงการก่อสร้าง รูปที่ ${detailGalleryIndex + 1}`;
     } else {
+      image.onerror = null;
       image.removeAttribute("src");
     }
   }
   if (empty) empty.hidden = hasPhotos;
+  if (sample) sample.hidden = !detailGalleryUsesFallback;
   if (counter) {
     counter.hidden = !hasPhotos;
     counter.textContent = hasPhotos ? `${detailGalleryIndex + 1}/${detailGalleryPhotos.length}` : "0/0";
@@ -538,7 +551,9 @@ function renderDetailPhotos(project) {
     ...meta,
     photos: normalizeDetailPhotos(project.checkpointPhotos?.[meta.key])
   }));
-  detailGalleryPhotos = Array.from(new Set([...sitePhotos, ...checkpointGroups.flatMap((group) => group.photos)]));
+  const actualPhotos = Array.from(new Set([...sitePhotos, ...checkpointGroups.flatMap((group) => group.photos)]));
+  detailGalleryUsesFallback = actualPhotos.length === 0;
+  detailGalleryPhotos = detailGalleryUsesFallback ? [DETAIL_FALLBACK_PHOTO] : actualPhotos;
   detailGalleryIndex = 0;
 
   const strip = document.getElementById("detailGalleryStrip");
@@ -650,6 +665,8 @@ function openProjectDetail(project) {
   setText("detailEnd", formatDateTime(project.end));
   setText("detailStatus", statuses[project.status].label);
   setText("detailStatusNote", project.statusNote || defaultStatusNotes[project.status]);
+  const detailBody = detailModal?.querySelector(".citizen-project-detail-body");
+  if (detailBody) detailBody.scrollTop = 0;
   renderDetailPhotos(project);
   const ratingSummary = document.getElementById("detailRatingSummary");
   if (ratingSummary) {
@@ -667,6 +684,9 @@ function openProjectDetail(project) {
   drawProjectBoundary(project);
   detailModal.classList.add("visible");
   detailModal.setAttribute("aria-hidden", "false");
+  window.requestAnimationFrame(() => {
+    if (detailBody) detailBody.scrollTop = 0;
+  });
 }
 
 function closeProjectDetail() {
@@ -1168,18 +1188,18 @@ function popupTemplate(project) {
     <article class="project-popup">
       <h3>${displayBilingualText(project.name)}</h3>
       <dl>
-        <dt>Status</dt><dd>${status.label}</dd>
+        <dt>สถานะ</dt><dd>${status.label}</dd>
         <dt>ประเภทงาน</dt><dd>${displayWorkType(project.workType)}</dd>
         <dt>ถนน</dt><dd>${displayPlaceName(project.roadName)}</dd>
-        <dt>Province</dt><dd>${displayPlaceName(project.province)}</dd>
-        <dt>Contractor</dt><dd>${project.contractor}</dd>
-        <dt>Start</dt><dd>${formatDate(project.start)}</dd>
-        <dt>End</dt><dd>${formatDate(project.end)}</dd>
+        <dt>จังหวัด</dt><dd>${displayPlaceName(project.province)}</dd>
+        <dt>ผู้รับเหมา</dt><dd>${project.contractor}</dd>
+        <dt>เริ่มงาน</dt><dd>${formatDate(project.start)}</dd>
+        <dt>สิ้นสุดงาน</dt><dd>${formatDate(project.end)}</dd>
         ${verifyBadge}
         ${karcBadge}
       </dl>
       <a class="detail-button" href="#" data-detail="${project.id}">
-        View Detail <i class="fa-solid fa-arrow-right"></i>
+        ดูรายละเอียด <i class="fa-solid fa-arrow-right"></i>
       </a>
     </article>
   `;
