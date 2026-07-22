@@ -168,7 +168,7 @@ let placePinMode = false;
 let placedPinMarker = null;
 let placedPinFallback = null;
 let placedPinCoords = null;
-let reportImageData = "";
+let reportImageData = [];
 let confirmedReportLocation = null;
 let pendingReportLocation = null;
 let reportLocationMap = null;
@@ -258,6 +258,7 @@ async function syncWithServer() {
     if (typeof renderReports === "function") renderReports();
     if (window.AdminModule) {
       window.AdminModule.renderConstructionReports();
+      window.AdminModule.renderCitizenReports();
       window.AdminModule.renderCompanyList();
     }
   } catch (error) {
@@ -332,6 +333,45 @@ function readImageFile(file) {
     reader.onload = () => resolve(String(reader.result || ""));
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
+  });
+}
+
+function readReportImageFile(file) {
+  const maxFileBytes = 12 * 1024 * 1024;
+  const maxDimension = 1280;
+  if (!file || !file.type.startsWith("image/")) {
+    return Promise.reject(new Error("กรุณาเลือกไฟล์รูปภาพเท่านั้น"));
+  }
+  if (file.size > maxFileBytes) {
+    return Promise.reject(new Error("รูปภาพแต่ละรูปต้องมีขนาดไม่เกิน 12 MB"));
+  }
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      try {
+        const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+        const width = Math.max(1, Math.round(image.naturalWidth * scale));
+        const height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, width, height);
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.78));
+      } catch (error) {
+        reject(error);
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("ไม่สามารถอ่านไฟล์รูปภาพได้"));
+    };
+    image.src = objectUrl;
   });
 }
 
@@ -1494,8 +1534,24 @@ function renderMarkers() {
   }
 }
 
+function reportImagesOf(report) {
+  if (Array.isArray(report?.images)) {
+    return report.images.filter((image) => typeof image === "string" && image);
+  }
+  if (typeof report?.image !== "string" || !report.image) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(report.image);
+    return Array.isArray(parsed) ? parsed.filter((image) => typeof image === "string" && image) : [report.image];
+  } catch {
+    return [report.image];
+  }
+}
+
 function reportPopupTemplate(report) {
-  const image = report.image ? `<img src="${report.image}" alt="Report image">` : "";
+  const primaryImage = reportImagesOf(report)[0];
+  const image = primaryImage ? `<img src="${primaryImage}" alt="Report image">` : "";
   return `
     <article class="project-popup report-popup">
       <h3>${report.title}</h3>
@@ -1928,7 +1984,8 @@ async function submitReport(event) {
     type: "Other",
     title,
     description,
-    image: reportImageData,
+    image: reportImageData[0] || null,
+    images: [...reportImageData],
     lat: confirmedReportLocation.lat,
     lng: confirmedReportLocation.lng,
     timestamp,
@@ -1957,8 +2014,11 @@ async function submitReport(event) {
     }
 
     const returnedReport = payload.report || report;
+    const returnedImages = reportImagesOf(returnedReport);
     const canonicalReport = {
       ...returnedReport,
+      image: returnedImages[0] || null,
+      images: returnedImages,
       lat: Number(returnedReport.lat),
       lng: Number(returnedReport.lng)
     };
@@ -1978,13 +2038,11 @@ async function submitReport(event) {
     closeReportsPanel();
     focusReport(canonicalReport);
     form.reset();
-    reportImageData = "";
+    reportImageData = [];
     confirmedReportLocation = null;
     pendingReportLocation = null;
     reportAddressRequestId += 1;
-    const preview = document.getElementById("reportImagePreview");
-    preview.classList.remove("visible");
-    preview.removeAttribute("src");
+    renderReportImagePreviews();
     const summary = document.getElementById("reportLocationSummary");
     summary?.classList.remove("is-confirmed");
     const summaryText = summary?.querySelector("span");
@@ -2024,22 +2082,62 @@ async function handleDetailImageUpload(event) {
   }
 }
 
-async function handleReportImageUpload(event) {
-  const file = event.target.files && event.target.files[0];
+function renderReportImagePreviews() {
   const preview = document.getElementById("reportImagePreview");
-  if (!file) {
-    reportImageData = "";
-    preview.classList.remove("visible");
-    preview.removeAttribute("src");
+  const count = document.getElementById("reportImageCount");
+  if (!preview) return;
+  preview.replaceChildren();
+  reportImageData.forEach((source, index) => {
+    const item = document.createElement("figure");
+    item.className = "report-image-preview-item";
+    const image = document.createElement("img");
+    image.src = source;
+    image.alt = `รูปแนบ ${index + 1}`;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "report-image-remove";
+    remove.setAttribute("aria-label", `ลบรูปที่ ${index + 1}`);
+    remove.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+    remove.addEventListener("click", () => {
+      reportImageData.splice(index, 1);
+      renderReportImagePreviews();
+    });
+    item.append(image, remove);
+    preview.appendChild(item);
+  });
+  preview.classList.toggle("visible", reportImageData.length > 0);
+  if (count) count.textContent = `${reportImageData.length}/6 รูป`;
+}
+
+async function handleReportImageUpload(event) {
+  const selectedFiles = Array.from(event.target.files || []);
+  event.target.value = "";
+  if (!selectedFiles.length) return;
+
+  const availableSlots = Math.max(0, 6 - reportImageData.length);
+  if (!availableSlots) {
+    showToast("แนบรูปได้สูงสุด 6 รูป");
     return;
   }
-  try {
-    reportImageData = await readImageFile(file);
-    preview.src = reportImageData;
-    preview.classList.add("visible");
-  } catch (error) {
-    console.warn("Report image upload failed.", error);
-    showToast("Could not read that image");
+  const files = selectedFiles.slice(0, availableSlots);
+  if (selectedFiles.length > availableSlots) {
+    showToast(`เลือกได้อีก ${availableSlots} รูป ระบบจะใช้เฉพาะรูปแรก`);
+  }
+
+  let failed = 0;
+  for (const file of files) {
+    try {
+      const image = await readReportImageFile(file);
+      if (image) reportImageData.push(image);
+    } catch (error) {
+      failed += 1;
+      console.warn("Report image upload failed.", error);
+      showToast(error.message || "ไม่สามารถอ่านรูปภาพได้");
+    }
+  }
+  renderReportImagePreviews();
+  if (!failed && files.length) {
+    showToast(`แนบรูปแล้ว ${reportImageData.length}/6 รูป`);
   }
 }
 

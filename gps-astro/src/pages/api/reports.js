@@ -2,15 +2,35 @@ import { supabase } from "../../lib/supabase.js";
 
 export const prerender = false;
 
-// Client shape (from script.js submitReport): { id, type, title, description,
-// image, lat, lng, timestamp, reporter }
+// Client shape: { id, type, title, description, image, images[], lat, lng,
+// timestamp, reporter }. image remains the first album image for old clients.
+const MAX_REPORT_IMAGES = 6;
+const MAX_REPORT_IMAGE_PAYLOAD = 5_500_000;
+
+function normalizeReportImages(images, legacyImage) {
+  let candidates = Array.isArray(images) ? images : [];
+  if (!candidates.length && typeof legacyImage === "string" && legacyImage) {
+    try {
+      const parsed = JSON.parse(legacyImage);
+      candidates = Array.isArray(parsed) ? parsed : [legacyImage];
+    } catch {
+      candidates = [legacyImage];
+    }
+  }
+  return candidates
+    .filter((value) => typeof value === "string" && value.trim())
+    .slice(0, MAX_REPORT_IMAGES);
+}
+
 function rowToClient(row) {
+  const images = normalizeReportImages([], row.image_url);
   return {
     id: row.legacy_id,
     type: row.type,
     title: row.title,
     description: row.description,
-    image: row.image_url,
+    image: images[0] || null,
+    images,
     lat: row.lat,
     lng: row.lng,
     timestamp: row.created_at,
@@ -41,15 +61,39 @@ export async function GET() {
 export async function POST({ request }) {
   try {
     const report = await request.json();
+    const title = typeof report.title === "string" ? report.title.trim() : "";
+    const lat = Number(report.lat);
+    const lng = Number(report.lng);
+    const images = normalizeReportImages(report.images, report.image);
+    const imagePayloadSize = images.reduce((total, image) => total + image.length, 0);
+
+    if (!title) {
+      return new Response(JSON.stringify({ error: "กรุณาระบุหัวข้อรายงาน" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
+      return new Response(JSON.stringify({ error: "พิกัด GPS ไม่ถูกต้อง" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (imagePayloadSize > MAX_REPORT_IMAGE_PAYLOAD) {
+      return new Response(JSON.stringify({ error: "รูปภาพรวมมีขนาดใหญ่เกิน 5.5 MB" }), {
+        status: 413,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
     const row = {
       legacy_id: report.id,
       type: report.type || "Other",
-      title: report.title,
+      title,
       description: report.description || null,
-      image_url: report.image || null,
-      lat: report.lat,
-      lng: report.lng,
+      image_url: images.length > 1 ? JSON.stringify(images) : (images[0] || null),
+      lat,
+      lng,
       reporter_name: report.reporter || "ประชาชน",
     };
     if (report.timestamp) {

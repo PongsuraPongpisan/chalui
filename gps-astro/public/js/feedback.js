@@ -89,7 +89,8 @@ function submitFeedback(data) {
     contractorName: nearestZone ? nearestZone.contractor : null,
     problemType: data.problemType,
     description: (data.description || '').slice(0, FEEDBACK_DESC_MAX),
-    photoUrl: data.photoUrl || null,
+    photoUrls: Array.isArray(data.photoUrls) ? data.photoUrls : (data.photoUrl ? [data.photoUrl] : []),
+    photoUrl: data.photoUrl || (Array.isArray(data.photoUrls) ? data.photoUrls[0] : null) || null,
     lat: data.lat || null,
     lng: data.lng || null,
     status: 'pending', // pending | resolved
@@ -276,6 +277,9 @@ function ingestReportAsFeedback(report) {
     'Other': 'other'
   };
   const nearestZone = report.lat && report.lng ? findNearestZone(report.lat, report.lng) : null;
+  const photoUrls = Array.isArray(report.images) && report.images.length
+    ? report.images.filter(Boolean)
+    : (report.image ? [report.image] : []);
   const feedback = {
     id: `fb-${report.id}`,
     zoneId: nearestZone ? nearestZone.id : null,
@@ -283,7 +287,8 @@ function ingestReportAsFeedback(report) {
     contractorName: nearestZone ? nearestZone.contractor : null,
     problemType: typeMap[report.type] || 'other',
     description: report.description || report.title || '',
-    photoUrl: report.image || null,
+    photoUrls,
+    photoUrl: photoUrls[0] || null,
     lat: report.lat || null,
     lng: report.lng || null,
     status: 'pending',

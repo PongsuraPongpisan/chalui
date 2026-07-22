@@ -164,9 +164,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
                 <span>เลือกรูป</span>
               </label>
               <input id="reportCameraImage" class="visually-hidden" type="file" accept="image/*" capture="environment">
-              <input id="reportGalleryImage" class="visually-hidden" type="file" accept="image/*">
+              <input id="reportGalleryImage" class="visually-hidden" type="file" accept="image/*" multiple>
             </div>
-            <img class="report-image-preview" id="reportImagePreview" alt="ตัวอย่างรูปที่แนบ">
+            <div class="report-image-preview-grid" id="reportImagePreview" aria-live="polite"></div>
+            <small class="report-image-count" id="reportImageCount">0/6 รูป</small>
             <label><span>เวลา</span><input id="reportTimestampDisplay" type="text" readonly aria-readonly="true"></label>
             <input id="reportTimestamp" type="hidden">
             <button class="primary-action" id="reportSubmitButton" type="submit">ส่งรายงาน</button>

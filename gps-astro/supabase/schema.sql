@@ -106,10 +106,10 @@ create table reports (
   type report_type not null default 'Other',
   title text not null,
   description text,
-  image_url text, -- Supabase Storage URL (metadata only, never binary in DB)
+  image_url text, -- legacy URL or JSON-encoded photo album (API exposes image + images[])
   lat double precision not null,
   lng double precision not null,
-  reporter_name text default 'Demo Reporter',
+  reporter_name text default 'ประชาชน',
   status feedback_status not null default 'pending',
   created_at timestamptz not null default now(),
   resolved_at timestamptz

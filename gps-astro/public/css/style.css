@@ -4521,3 +4521,339 @@ body.approval-modal-open { overflow: hidden; }
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ─── Citizen report albums and Admin feedback dashboard ─── */
+.report-image-preview-grid {
+  display: none;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.report-image-preview-grid.visible {
+  display: grid;
+}
+
+.report-image-preview-item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #e8efeb;
+}
+
+.report-image-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.report-image-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.78);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.report-image-count {
+  margin-top: -5px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+#citizenReportList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-citizen-card {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px;
+  overflow: hidden;
+  border: 1px solid #dce5df;
+  border-radius: 14px;
+  background: #ffffff;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 5px 16px rgba(21, 56, 42, 0.06);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.admin-citizen-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--teal) 45%, var(--line));
+  box-shadow: 0 10px 24px rgba(21, 56, 42, 0.12);
+}
+
+.admin-citizen-card:focus-visible {
+  outline: 3px solid rgba(31, 154, 154, 0.24);
+  outline-offset: 2px;
+}
+
+.admin-citizen-card-media {
+  position: relative;
+  display: grid;
+  width: 104px;
+  height: 86px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #edf3ef;
+}
+
+.admin-citizen-card-media > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-citizen-card-placeholder {
+  color: #94a3b8;
+  font-size: 1.5rem;
+}
+
+.admin-citizen-photo-count {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.78);
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.admin-citizen-card-body {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.admin-citizen-card-body small {
+  color: var(--teal);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.admin-citizen-card-body strong {
+  overflow: hidden;
+  color: #17201c;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-citizen-card-body time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.admin-citizen-card-arrow {
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+body.citizen-detail-open,
+body.citizen-lightbox-open {
+  overflow: hidden;
+}
+
+#citizenDetailModal {
+  position: fixed;
+  z-index: 2800;
+}
+
+#citizenDetailModal .detail-panel {
+  width: min(720px, calc(100vw - 36px));
+}
+
+#citizenDetailModal .detail-body {
+  gap: 16px;
+}
+
+.citizen-detail-gallery {
+  display: grid;
+  gap: 10px;
+}
+
+.citizen-gallery-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #e5e7eb;
+}
+
+.citizen-gallery-open {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.citizen-gallery-open img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #111827;
+}
+
+.citizen-gallery-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.72);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.citizen-gallery-arrow.prev { left: 10px; }
+.citizen-gallery-arrow.next { right: 10px; }
+
+.citizen-gallery-counter {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.76);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.citizen-gallery-thumbnails {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 1px 5px;
+}
+
+.citizen-gallery-thumbnails button {
+  flex: 0 0 68px;
+  width: 68px;
+  height: 60px;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 9px;
+  background: #e5e7eb;
+  cursor: pointer;
+}
+
+.citizen-gallery-thumbnails button.active {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px rgba(31, 154, 154, 0.14);
+}
+
+.citizen-gallery-thumbnails img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.citizen-photo-empty {
+  padding: 22px;
+}
+
+.citizen-detail-map-section {
+  display: grid;
+  gap: 9px;
+}
+
+.citizen-detail-map-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: #26332d;
+  font-size: 0.88rem;
+}
+
+.citizen-detail-map-section h3 i {
+  color: var(--teal);
+}
+
+.citizen-detail-map {
+  height: 240px;
+}
+
+#citizenDetailLightbox {
+  z-index: 5000;
+}
+
+@media (max-width: 720px) {
+  #citizenReportList {
+    grid-template-columns: 1fr;
+  }
+
+  #citizenDetailModal {
+    padding: 64px 10px max(82px, calc(72px + env(safe-area-inset-bottom)));
+  }
+
+  #citizenDetailModal .detail-panel {
+    width: 100%;
+  }
+
+  .citizen-gallery-stage {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+@media (max-width: 430px) {
+  .report-image-preview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-citizen-card {
+    grid-template-columns: 88px minmax(0, 1fr) auto;
+    gap: 9px;
+  }
+
+  .admin-citizen-card-media {
+    width: 88px;
+    height: 78px;
+  }
+
+  .citizen-detail-map {
+    height: 210px;
+  }
+}
