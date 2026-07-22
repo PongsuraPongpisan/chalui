@@ -4904,3 +4904,324 @@ body.citizen-lightbox-open {
 #map.pin-drop-hover {
   box-shadow: inset 0 0 0 6px rgba(22, 163, 74, 0.64);
 }
+
+/* ─── Citizen project gallery + shared Google-style project reviews ─── */
+.citizen-project-detail-panel {
+  width: min(880px, calc(100vw - 36px));
+}
+
+.citizen-project-detail-header > div {
+  min-width: 0;
+}
+
+.citizen-project-detail-body {
+  grid-template-columns: minmax(0, 1fr);
+  padding-bottom: 30px;
+}
+
+.citizen-gallery-card {
+  overflow: hidden;
+}
+
+.citizen-detail-cover {
+  aspect-ratio: 16 / 8;
+  margin-bottom: 10px;
+}
+
+.citizen-gallery-empty {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  color: #75817c;
+  background: linear-gradient(145deg, #eef3f1, #e2eae7);
+}
+
+.citizen-gallery-empty[hidden] {
+  display: none;
+}
+
+.citizen-gallery-empty i {
+  font-size: 2rem;
+}
+
+.citizen-detail-gallery-strip:empty,
+.citizen-detail-gallery-strip[hidden] {
+  display: none;
+}
+
+.project-rating-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  margin: 5px 0 7px;
+  padding: 6px 10px;
+  border: 1px solid #fde68a;
+  border-radius: 999px;
+  background: #fffbeb;
+  color: #8a5a00;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.project-rating-badge::before {
+  content: "★";
+  color: #f59e0b;
+}
+
+.project-rating-badge > i {
+  display: none;
+}
+
+.project-rating-badge.has-reviews {
+  background: #fff8dd;
+  color: #6f4800;
+}
+
+.project-reviews {
+  display: grid;
+  gap: 16px;
+}
+
+.project-reviews-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.project-reviews-heading .eyebrow {
+  margin: 0 0 5px;
+}
+
+.project-reviews-heading .report-section-title {
+  margin-bottom: 0;
+}
+
+.project-reviews-heading .report-section-title i,
+.project-review-stars {
+  color: #f5a623;
+}
+
+.project-rating-summary {
+  display: grid;
+  flex: 0 0 auto;
+  min-width: 104px;
+  justify-items: end;
+}
+
+.project-rating-summary strong {
+  color: #6f4800;
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.project-rating-summary span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.project-review-form {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: rgba(249, 250, 251, 0.88);
+}
+
+.star-rating-input {
+  display: flex;
+  width: fit-content;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+
+.star-rating-input legend {
+  width: 100%;
+  margin-bottom: 7px;
+  color: #33413b;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.star-rating-input input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.star-rating-input label {
+  padding-right: 5px;
+  color: #d1d5db;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.star-rating-input label:hover,
+.star-rating-input label:hover ~ label,
+.star-rating-input input:checked ~ label {
+  color: #f5a623;
+}
+
+.star-rating-input input:focus-visible + label {
+  border-radius: 4px;
+  outline: 3px solid rgba(31, 154, 154, 0.3);
+}
+
+.star-rating-input label:hover {
+  transform: scale(1.12);
+}
+
+.project-review-comment {
+  display: grid;
+  gap: 6px;
+}
+
+.project-review-comment span {
+  color: #33413b;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.project-review-comment textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #cfd8d4;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px 12px;
+  color: #17201c;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.project-review-submit {
+  width: fit-content;
+}
+
+.project-review-form-status {
+  min-height: 1.2em;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.project-review-form-status.success { color: #15803d; }
+.project-review-form-status.error { color: #b91c1c; }
+
+.project-review-list {
+  display: grid;
+  gap: 0;
+  max-height: 360px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid #edf0ef;
+}
+
+.project-review-item {
+  display: grid;
+  gap: 9px;
+  padding: 15px 2px;
+  border-bottom: 1px solid #edf0ef;
+}
+
+.project-review-item header {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.project-review-avatar {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1f9a9a, #15382a);
+  color: #fff;
+  font-weight: 900;
+}
+
+.project-review-item header > div {
+  display: grid;
+  min-width: 0;
+}
+
+.project-review-item header strong {
+  color: #17201c;
+  font-size: 0.86rem;
+}
+
+.project-review-item header div span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.project-review-stars {
+  white-space: nowrap;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+}
+
+.project-review-item p {
+  margin: 0 0 0 48px;
+  color: #3f4d47;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.project-review-empty {
+  padding: 24px 12px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.82rem;
+}
+
+.project-review-empty.error {
+  color: #b91c1c;
+}
+
+@media (max-width: 700px) {
+  .citizen-project-detail-panel {
+    width: 100%;
+  }
+
+  .citizen-detail-cover {
+    aspect-ratio: 4 / 3;
+  }
+
+  .project-reviews-heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .project-rating-summary {
+    justify-items: start;
+  }
+
+  .project-review-item header {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .project-review-stars {
+    grid-column: 2;
+  }
+
+  .project-review-item p {
+    margin-left: 46px;
+  }
+}

@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ProjectReviews from '../../../components/ProjectReviews.astro';
 import { localizeRoad, localizeWorkType, WORK_TYPE_LABELS } from '../../../lib/project-localization.js';
 import { rowToClient } from '../../../lib/project-mapper.js';
 import { getSession } from '../../../lib/session.js';
@@ -132,6 +133,7 @@ const toInputDate = (value: unknown) => {
               <span class="report-meta-chip"><i class="fa-solid fa-helmet-safety"></i> {STATUS_LABELS[statusKey]}</span>
             </div>
             <h2>{project.name}</h2>
+            <div class="project-rating-badge" data-project-rating-summary={project.id} aria-live="polite"><i class="fa-solid fa-star"></i> กำลังโหลดคะแนน...</div>
             <p><i class="fa-solid fa-road"></i> {localizedRoad} · {project.province || '-'}</p>
           </div>
         </section>
@@ -189,6 +191,8 @@ const toInputDate = (value: unknown) => {
             })}
           </div>
         </section>
+
+        <ProjectReviews projectId={project.id} />
 
         <form class:list={{ 'card glass-panel contractor-project-form': true, 'is-readonly': isCompleted }} id="contractorProjectForm">
           <div class="contractor-form-title"><div><p class="eyebrow">{isCompleted ? 'READ ONLY' : 'EDIT PROJECT'}</p><h2>{isCompleted ? 'โครงการเสร็จสิ้นและล็อกแล้ว' : 'แก้ไขข้อมูลโครงการ'}</h2></div><i class={`fa-solid ${isCompleted ? 'fa-lock' : 'fa-pen-to-square'}`}></i></div>

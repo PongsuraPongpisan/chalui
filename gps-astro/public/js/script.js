@@ -229,7 +229,6 @@ function saveLocalState(key, value) {
 }
 
 const reports = loadLocalState("gpsConstructionReports", []);
-const uploadedProjectImages = loadLocalState("gpsConstructionProjectImages", {});
 
 // Astro Central Server Sync (Phase 4)
 async function syncWithServer() {
@@ -319,19 +318,6 @@ function hydrateAddressBook() {
     if (!addressBook.some((item) => item.id === point.id)) {
       addressBook.push(point);
     }
-  });
-}
-
-function readImageFile(file) {
-  return new Promise((resolve, reject) => {
-    if (!file) {
-      resolve("");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
   });
 }
 
@@ -492,20 +478,164 @@ function clearProjectBoundary() {
   document.querySelectorAll(".fallback-boundary").forEach((item) => item.remove());
 }
 
-function renderDetailPhotos(project) {
-  const host = document.getElementById("detailPhotos");
-  if (!host) {
-    return;
+const DETAIL_CHECKPOINTS = [
+  { key: "cone", num: 1, icon: "fa-triangle-exclamation", label: "กรวยจราจร" },
+  { key: "warning_sign", num: 2, icon: "fa-sign-hanging", label: "ป้ายเตือน" },
+  { key: "flashing_light", num: 3, icon: "fa-lightbulb", label: "ไฟเตือน" },
+  { key: "barrier", num: 4, icon: "fa-road-barrier", label: "แผงกั้นเขตก่อสร้าง" },
+  { key: "lane_marking", num: 5, icon: "fa-road", label: "เส้นแบ่งช่องทาง" },
+  { key: "speed_limit_sign", num: 6, icon: "fa-gauge-high", label: "ป้ายจำกัดความเร็ว" },
+  { key: "detour", num: 7, icon: "fa-diamond-turn-right", label: "ทางเบี่ยง" },
+  { key: "construction_zone", num: 8, icon: "fa-map-location-dot", label: "เขตก่อสร้าง" }
+];
+let detailGalleryPhotos = [];
+let detailGalleryIndex = 0;
+let detailLightboxPhotos = [];
+let detailLightboxIndex = 0;
+
+function normalizeDetailPhotos(value) {
+  return Array.isArray(value)
+    ? value.filter((photo) => typeof photo === "string" && (/^data:image\//.test(photo) || /^https:\/\//.test(photo)))
+    : [];
+}
+
+function renderDetailGalleryFrame() {
+  const image = document.getElementById("detailGalleryImage");
+  const empty = document.getElementById("detailGalleryEmpty");
+  const counter = document.getElementById("detailGalleryCounter");
+  const previous = document.getElementById("detailGalleryPrev");
+  const next = document.getElementById("detailGalleryNext");
+  const hasPhotos = detailGalleryPhotos.length > 0;
+  if (image) {
+    image.hidden = !hasPhotos;
+    if (hasPhotos) {
+      image.src = detailGalleryPhotos[detailGalleryIndex];
+      image.alt = `รูปตรวจโครงการ รูปที่ ${detailGalleryIndex + 1}`;
+    } else {
+      image.removeAttribute("src");
+    }
   }
-  const colors = project.photoColors || photoPalettes[project.photoTheme] || photoPalettes["black-red-white"];
-  const uploadedImages = uploadedProjectImages[project.id] || [];
-  const swatches = colors
-    .map((color) => `<span class="photo-swatch" style="background:${color}" aria-label="Mock area photo color"></span>`)
-    .join("");
-  const photos = uploadedImages
-    .map((src) => `<img class="detail-photo" src="${src}" alt="Uploaded construction image preview">`)
-    .join("");
-  host.innerHTML = photos + swatches;
+  if (empty) empty.hidden = hasPhotos;
+  if (counter) {
+    counter.hidden = !hasPhotos;
+    counter.textContent = hasPhotos ? `${detailGalleryIndex + 1}/${detailGalleryPhotos.length}` : "0/0";
+  }
+  const hasMultiple = detailGalleryPhotos.length > 1;
+  if (previous) previous.hidden = !hasMultiple;
+  if (next) next.hidden = !hasMultiple;
+  document.querySelectorAll("#detailGalleryStrip img").forEach((thumbnail, index) => thumbnail.classList.toggle("active", index === detailGalleryIndex));
+}
+
+function changeDetailGallery(step) {
+  if (detailGalleryPhotos.length < 2) return;
+  detailGalleryIndex = (detailGalleryIndex + step + detailGalleryPhotos.length) % detailGalleryPhotos.length;
+  renderDetailGalleryFrame();
+}
+
+function renderDetailPhotos(project) {
+  const sitePhotos = normalizeDetailPhotos(project.sitePhotos);
+  const checkpointGroups = DETAIL_CHECKPOINTS.map((meta) => ({
+    ...meta,
+    photos: normalizeDetailPhotos(project.checkpointPhotos?.[meta.key])
+  }));
+  detailGalleryPhotos = Array.from(new Set([...sitePhotos, ...checkpointGroups.flatMap((group) => group.photos)]));
+  detailGalleryIndex = 0;
+
+  const strip = document.getElementById("detailGalleryStrip");
+  strip?.replaceChildren();
+  detailGalleryPhotos.forEach((source, index) => {
+    const button = document.createElement("button");
+    button.className = "checkpoint-photo-button";
+    button.type = "button";
+    button.setAttribute("aria-label", `ดูรูปที่ ${index + 1}`);
+    const image = document.createElement("img");
+    image.src = source;
+    image.alt = `รูปตรวจโครงการ ${index + 1}`;
+    image.loading = "lazy";
+    image.classList.toggle("active", index === 0);
+    button.appendChild(image);
+    button.addEventListener("click", () => {
+      detailGalleryIndex = index;
+      renderDetailGalleryFrame();
+    });
+    strip?.appendChild(button);
+  });
+  if (strip) strip.hidden = detailGalleryPhotos.length < 2;
+
+  const checkpointHost = document.getElementById("detailCheckpointPhotos");
+  checkpointHost?.replaceChildren();
+  checkpointGroups.forEach((group) => {
+    const section = document.createElement("section");
+    section.className = "checkpoint-album-group";
+    const title = document.createElement("h3");
+    title.className = "checkpoint-album-title";
+    title.innerHTML = `<span class="checkpoint-num">${group.num}</span><i class="fa-solid ${group.icon}"></i> ${group.label}`;
+    section.appendChild(title);
+    if (!group.photos.length) {
+      const empty = document.createElement("div");
+      empty.className = "checkpoint-album-empty";
+      empty.textContent = "ไม่มีรูปแนบ";
+      section.appendChild(empty);
+    } else {
+      const album = document.createElement("div");
+      album.className = "checkpoint-album-strip";
+      album.setAttribute("aria-label", `อัลบั้ม${group.label}`);
+      group.photos.forEach((source, index) => {
+        const button = document.createElement("button");
+        button.className = "checkpoint-photo-button";
+        button.type = "button";
+        button.setAttribute("aria-label", `ขยายรูป ${group.label} รูปที่ ${index + 1}`);
+        const image = document.createElement("img");
+        image.src = source;
+        image.alt = `${group.label} รูปที่ ${index + 1}`;
+        image.loading = "lazy";
+        button.appendChild(image);
+        button.addEventListener("click", () => openCitizenProjectLightbox(group.photos, index));
+        album.appendChild(button);
+      });
+      section.appendChild(album);
+    }
+    checkpointHost?.appendChild(section);
+  });
+  renderDetailGalleryFrame();
+}
+
+function renderCitizenProjectLightbox() {
+  const image = document.getElementById("citizenProjectLightboxImage");
+  const counter = document.getElementById("citizenProjectLightboxCounter");
+  const previous = document.getElementById("citizenProjectLightboxPrev");
+  const next = document.getElementById("citizenProjectLightboxNext");
+  if (!image || !detailLightboxPhotos.length) return;
+  image.src = detailLightboxPhotos[detailLightboxIndex];
+  image.alt = `รูปโครงการแบบเต็มจอ รูปที่ ${detailLightboxIndex + 1}`;
+  if (counter) counter.textContent = `${detailLightboxIndex + 1}/${detailLightboxPhotos.length}`;
+  const hasMultiple = detailLightboxPhotos.length > 1;
+  if (previous) previous.hidden = !hasMultiple;
+  if (next) next.hidden = !hasMultiple;
+}
+
+function openCitizenProjectLightbox(photos, index = 0) {
+  if (!Array.isArray(photos) || !photos.length) return;
+  detailLightboxPhotos = photos;
+  detailLightboxIndex = Math.max(0, Math.min(index, photos.length - 1));
+  renderCitizenProjectLightbox();
+  const lightbox = document.getElementById("citizenProjectLightbox");
+  lightbox?.classList.add("visible");
+  lightbox?.setAttribute("aria-hidden", "false");
+  document.body.classList.add("lightbox-open");
+}
+
+function closeCitizenProjectLightbox() {
+  const lightbox = document.getElementById("citizenProjectLightbox");
+  lightbox?.classList.remove("visible");
+  lightbox?.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("lightbox-open");
+}
+
+function changeCitizenProjectLightbox(step) {
+  if (detailLightboxPhotos.length < 2) return;
+  detailLightboxIndex = (detailLightboxIndex + step + detailLightboxPhotos.length) % detailLightboxPhotos.length;
+  renderCitizenProjectLightbox();
 }
 
 function openProjectDetail(project) {
@@ -514,19 +644,33 @@ function openProjectDetail(project) {
   setText("detailName", displayBilingualText(project.name));
   setText("detailType", displayWorkType(project.workType));
   setText("detailGps", `${project.lat.toFixed(6)}, ${project.lng.toFixed(6)}`);
-  setText("detailBoundary", `${project.boundaryMeters || 260} m around pin`);
+  setText("detailBoundary", `${project.boundaryMeters || 260} เมตรรอบหมุด`);
   setText("detailTimestamp", formatDateTime(project.timestamp || new Date().toISOString()));
   setText("detailStart", formatDateTime(project.start));
   setText("detailEnd", formatDateTime(project.end));
   setText("detailStatus", statuses[project.status].label);
   setText("detailStatusNote", project.statusNote || defaultStatusNotes[project.status]);
   renderDetailPhotos(project);
+  const ratingSummary = document.getElementById("detailRatingSummary");
+  if (ratingSummary) {
+    ratingSummary.dataset.projectRatingSummary = String(project.id);
+    ratingSummary.textContent = "กำลังโหลดคะแนน...";
+  }
+  const reviewHost = detailModal?.querySelector("[data-project-reviews]");
+  if (reviewHost) {
+    window.ProjectReviews?.bind(reviewHost);
+    window.ProjectReviews?.load(reviewHost, project.id).catch((error) => {
+      const list = reviewHost.querySelector("[data-review-list]");
+      if (list) list.textContent = error.message || "ไม่สามารถโหลดรีวิวได้";
+    });
+  }
   drawProjectBoundary(project);
   detailModal.classList.add("visible");
   detailModal.setAttribute("aria-hidden", "false");
 }
 
 function closeProjectDetail() {
+  closeCitizenProjectLightbox();
   detailModal.classList.remove("visible");
   detailModal.setAttribute("aria-hidden", "true");
   clearProjectBoundary();
@@ -2117,28 +2261,6 @@ async function submitReport(event) {
   }
 }
 
-async function handleDetailImageUpload(event) {
-  const file = event.target.files && event.target.files[0];
-  if (!file || !selectedProjectId) {
-    return;
-  }
-  try {
-    const image = await readImageFile(file);
-    uploadedProjectImages[selectedProjectId] ||= [];
-    uploadedProjectImages[selectedProjectId].unshift(image);
-    saveLocalState("gpsConstructionProjectImages", uploadedProjectImages);
-    const project = projects.find((item) => item.id === selectedProjectId);
-    if (project) {
-      renderDetailPhotos(project);
-    }
-    event.target.value = "";
-    showToast("Image uploaded");
-  } catch (error) {
-    console.warn("Image upload failed.", error);
-    showToast("Could not read that image");
-  }
-}
-
 function renderReportImagePreviews() {
   const preview = document.getElementById("reportImagePreview");
   const count = document.getElementById("reportImageCount");
@@ -2684,6 +2806,41 @@ function on(id, evt, handler) {
   if (el) el.addEventListener(evt, handler);
 }
 
+function initializeCitizenProjectGallery() {
+  on("detailGalleryPrev", "click", () => changeDetailGallery(-1));
+  on("detailGalleryNext", "click", () => changeDetailGallery(1));
+  on("detailGalleryImage", "click", () => openCitizenProjectLightbox(detailGalleryPhotos, detailGalleryIndex));
+  on("citizenProjectLightboxClose", "click", closeCitizenProjectLightbox);
+  on("citizenProjectLightboxPrev", "click", () => changeCitizenProjectLightbox(-1));
+  on("citizenProjectLightboxNext", "click", () => changeCitizenProjectLightbox(1));
+  const lightbox = document.getElementById("citizenProjectLightbox");
+  lightbox?.addEventListener("click", (event) => {
+    if (event.target === lightbox) closeCitizenProjectLightbox();
+  });
+
+  const bindSwipe = (element, onSwipe) => {
+    let startX = 0;
+    let startY = 0;
+    element?.addEventListener("touchstart", (event) => {
+      startX = event.changedTouches[0].clientX;
+      startY = event.changedTouches[0].clientY;
+    }, { passive: true });
+    element?.addEventListener("touchend", (event) => {
+      const deltaX = event.changedTouches[0].clientX - startX;
+      const deltaY = event.changedTouches[0].clientY - startY;
+      if (Math.abs(deltaX) >= 45 && Math.abs(deltaX) > Math.abs(deltaY)) onSwipe(deltaX < 0 ? 1 : -1);
+    }, { passive: true });
+  };
+  bindSwipe(document.getElementById("detailGallery"), changeDetailGallery);
+  bindSwipe(lightbox, changeCitizenProjectLightbox);
+  document.addEventListener("keydown", (event) => {
+    if (!lightbox?.classList.contains("visible")) return;
+    if (event.key === "Escape") closeCitizenProjectLightbox();
+    if (event.key === "ArrowLeft") changeCitizenProjectLightbox(-1);
+    if (event.key === "ArrowRight") changeCitizenProjectLightbox(1);
+  });
+}
+
 function bindEvents() {
   on("searchForm", "submit", runSearch);
   if (searchInput) {
@@ -2710,7 +2867,7 @@ function bindEvents() {
   on("createReportFab", "click", openReportsPanel);
   on("closeReports", "click", closeReportsPanel);
   on("reportForm", "submit", submitReport);
-  on("detailImageUpload", "change", handleDetailImageUpload);
+  initializeCitizenProjectGallery();
   on("reportCameraImage", "change", handleReportImageUpload);
   on("reportGalleryImage", "change", handleReportImageUpload);
   on("useReportCurrentLocation", "click", requestReportCurrentLocation);

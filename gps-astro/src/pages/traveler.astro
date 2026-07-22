@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import ProjectReviews from '../components/ProjectReviews.astro';
 ---
 <BaseLayout title="ผู้เดินทาง" role="traveler">
   <div class="app-shell">
@@ -120,22 +121,56 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <div class="toast map-ui" id="toast" role="status" aria-live="polite"></div>
 
       <section class="detail-modal map-ui" id="detailModal" aria-hidden="true">
-        <div class="detail-panel">
-          <header class="detail-header"><div><p class="eyebrow">Detail</p><h2 id="detailName">-</h2></div><button class="panel-toggle" id="closeDetail" type="button">X</button></header>
-          <div class="detail-body">
-            <div class="upload-row"><label class="upload-button" for="detailImageUpload"><i class="fa-solid fa-image"></i><span>Upload</span></label><input id="detailImageUpload" class="visually-hidden" type="file" accept="image/*"></div>
-            <div class="detail-photo-grid" id="detailPhotos"></div>
-            <dl class="detail-list">
-              <dt>ประเภทงาน</dt><dd id="detailType">-</dd>
-              <dt>GPS Pin</dt><dd id="detailGps">-</dd>
-              <dt>ขอบเขต</dt><dd id="detailBoundary">-</dd>
-              <dt>Timestamp</dt><dd id="detailTimestamp">-</dd>
-              <dt>เริ่มงาน</dt><dd id="detailStart">-</dd>
-              <dt>สิ้นสุดงาน</dt><dd id="detailEnd">-</dd>
-              <dt>สถานะ</dt><dd id="detailStatus">-</dd>
-              <dt>อัปเดต</dt><dd id="detailStatusNote">-</dd>
-            </dl>
+        <div class="detail-panel citizen-project-detail-panel">
+          <header class="detail-header citizen-project-detail-header">
+            <div>
+              <p class="eyebrow">รายละเอียดโครงการ</p>
+              <h2 id="detailName">-</h2>
+              <div class="project-rating-badge" id="detailRatingSummary" data-project-rating-summary="" aria-live="polite"><i class="fa-solid fa-star"></i> กำลังโหลดคะแนน...</div>
+            </div>
+            <button class="panel-toggle" id="closeDetail" type="button" aria-label="ปิดรายละเอียด">X</button>
+          </header>
+          <div class="detail-body citizen-project-detail-body">
+            <section class="report-section report-detail-card citizen-gallery-card">
+              <h2 class="report-section-title"><i class="fa-solid fa-camera"></i> อัลบั้มรูปตรวจโครงการ</h2>
+              <div class="listing-cover citizen-detail-cover" id="detailGallery">
+                <img class="listing-cover-img" id="detailGalleryImage" alt="รูปตรวจโครงการ" hidden>
+                <div class="citizen-gallery-empty" id="detailGalleryEmpty"><i class="fa-regular fa-images"></i><span>ยังไม่มีรูปตรวจโครงการ</span></div>
+                <button class="listing-cover-arrow prev" id="detailGalleryPrev" type="button" aria-label="รูปก่อนหน้า" hidden><i class="fa-solid fa-chevron-left"></i></button>
+                <button class="listing-cover-arrow next" id="detailGalleryNext" type="button" aria-label="รูปถัดไป" hidden><i class="fa-solid fa-chevron-right"></i></button>
+                <span class="listing-cover-counter" id="detailGalleryCounter" hidden>0/0</span>
+              </div>
+              <div class="report-gallery-strip citizen-detail-gallery-strip" id="detailGalleryStrip" aria-label="รูปตรวจโครงการทั้งหมด"></div>
+            </section>
+
+            <section class="report-section report-detail-card">
+              <h2 class="report-section-title"><i class="fa-solid fa-circle-info"></i> รายละเอียดโครงการ</h2>
+              <dl class="detail-list report-detail-list">
+                <dt>ประเภทงาน</dt><dd id="detailType">-</dd>
+                <dt>GPS</dt><dd id="detailGps">-</dd>
+                <dt>ขอบเขต</dt><dd id="detailBoundary">-</dd>
+                <dt>เวลารายงาน</dt><dd id="detailTimestamp">-</dd>
+                <dt>เริ่มงาน</dt><dd id="detailStart">-</dd>
+                <dt>สิ้นสุดงาน</dt><dd id="detailEnd">-</dd>
+                <dt>สถานะ</dt><dd id="detailStatus">-</dd>
+                <dt>อัปเดต</dt><dd id="detailStatusNote">-</dd>
+              </dl>
+            </section>
+
+            <section class="report-section report-detail-card">
+              <h2 class="report-section-title"><i class="fa-solid fa-list-check"></i> รูปตรวจมาตรฐาน 8 จุดสำคัญ</h2>
+              <div class="checkpoint-albums-grid" id="detailCheckpointPhotos"></div>
+            </section>
+
+            <ProjectReviews canSubmit={true} />
           </div>
+        </div>
+        <div class="image-lightbox" id="citizenProjectLightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="ดูรูปโครงการแบบเต็มจอ">
+          <button class="lightbox-close" id="citizenProjectLightboxClose" type="button" aria-label="ปิด"><i class="fa-solid fa-xmark"></i></button>
+          <button class="lightbox-arrow prev" id="citizenProjectLightboxPrev" type="button" aria-label="รูปก่อนหน้า"><i class="fa-solid fa-chevron-left"></i></button>
+          <img id="citizenProjectLightboxImage" alt="รูปโครงการแบบเต็มจอ">
+          <button class="lightbox-arrow next" id="citizenProjectLightboxNext" type="button" aria-label="รูปถัดไป"><i class="fa-solid fa-chevron-right"></i></button>
+          <span class="lightbox-counter" id="citizenProjectLightboxCounter">1/1</span>
         </div>
       </section>
 

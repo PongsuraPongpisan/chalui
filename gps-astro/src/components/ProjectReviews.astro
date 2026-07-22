@@ -1,0 +1,33 @@
+---
+interface Props {
+  projectId?: number | string | null;
+  canSubmit?: boolean;
+}
+const { projectId = '', canSubmit = false } = Astro.props;
+---
+<section class="project-reviews report-section report-detail-card glass-panel" data-project-reviews data-project-id={String(projectId || '')}>
+  <div class="project-reviews-heading">
+    <div>
+      <p class="eyebrow">ความคิดเห็นจากประชาชน</p>
+      <h2 class="report-section-title"><i class="fa-solid fa-star"></i> คะแนนและรีวิวโครงการ</h2>
+    </div>
+    <div class="project-rating-summary" aria-live="polite">
+      <strong data-review-average>-</strong>
+      <span data-review-count>กำลังโหลด...</span>
+    </div>
+  </div>
+  {canSubmit && (
+    <form class="project-review-form" data-review-form>
+      <fieldset class="star-rating-input">
+        <legend>ให้คะแนนโครงการ</legend>
+        {[5, 4, 3, 2, 1].map((star) => <><input id={`project-review-star-${star}`} name="rating" type="radio" value={star} required><label for={`project-review-star-${star}`} aria-label={`${star} ดาว`} title={`${star} ดาว`}>★</label></>)}
+      </fieldset>
+      <label class="project-review-comment"><span>เขียนความคิดเห็น</span><textarea name="comment" rows="3" minlength="3" maxlength="1000" placeholder="แบ่งปันประสบการณ์หรือข้อเสนอแนะเกี่ยวกับโครงการนี้" required></textarea></label>
+      <button class="primary-action project-review-submit" type="submit"><i class="fa-solid fa-paper-plane"></i> ส่งรีวิว</button>
+      <p class="project-review-form-status" data-review-form-status role="status" aria-live="polite"></p>
+    </form>
+  )}
+  <div class="project-review-list" data-review-list aria-live="polite">
+    <div class="project-review-empty">กำลังโหลดรีวิว...</div>
+  </div>
+</section>

@@ -228,3 +228,24 @@ end $$;
 
 create index if not exists idx_projects_admin_approval_status
   on projects(admin_approval_status);
+
+-- MIGRATION 4 — citizen star ratings and public project reviews.
+-- The opaque citizen identifier is server-issued and never returned publicly.
+create table if not exists public.project_reviews (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references public.projects(id) on delete cascade,
+  citizen_identifier uuid not null,
+  rating smallint not null check (rating between 1 and 5),
+  comment text not null check (char_length(comment) between 3 and 1000),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (project_id, citizen_identifier)
+);
+
+create index if not exists idx_project_reviews_project_created
+  on public.project_reviews(project_id, created_at desc);
+
+alter table public.project_reviews enable row level security;
+drop policy if exists "project_reviews_public_read" on public.project_reviews;
+revoke all privileges on table public.project_reviews from anon, authenticated;
+grant all privileges on table public.project_reviews to service_role;

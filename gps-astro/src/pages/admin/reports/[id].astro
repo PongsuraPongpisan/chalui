@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ProjectReviews from '../../../components/ProjectReviews.astro';
 import { localizeRoad, localizeWorkType } from '../../../lib/project-localization.js';
 import { rowToClient } from '../../../lib/project-mapper.js';
 import { supabase } from '../../../lib/supabase.js';
@@ -184,6 +185,7 @@ const reportData = project ? {
               <span class="report-meta-chip"><i class="fa-solid fa-location-dot"></i> {project.province || 'ไม่ระบุจังหวัด'}</span>
             </div>
             <h2 class="listing-title">{project.name || '-'}</h2>
+            <div class="project-rating-badge" data-project-rating-summary={project.id} aria-live="polite"><i class="fa-solid fa-star"></i> กำลังโหลดคะแนน...</div>
             <a class="listing-contractor company-report-link" href={companyHref}><i class="fa-solid fa-building"></i> {project.contractor || '-'}</a>
           </section>
 
@@ -228,6 +230,8 @@ const reportData = project ? {
               <dt>หมายเหตุ</dt><dd>{project.statusNote || '-'}</dd>
             </dl>
           </section>
+
+          <ProjectReviews projectId={project.id} />
         </article>
       </main>
     )}
