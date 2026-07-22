@@ -50,7 +50,7 @@ export async function POST({ request }) {
       image_url: report.image || null,
       lat: report.lat,
       lng: report.lng,
-      reporter_name: report.reporter || "Demo Reporter",
+      reporter_name: report.reporter || "ประชาชน",
     };
     if (report.timestamp) {
       row.created_at = new Date(report.timestamp).toISOString();

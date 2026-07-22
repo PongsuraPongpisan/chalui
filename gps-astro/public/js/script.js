@@ -165,11 +165,15 @@ let fallbackZoom = 1;
 let activeRoute = null;
 let activeRouteEstimate = null;
 let placePinMode = false;
-let reportPickMode = false;
 let placedPinMarker = null;
 let placedPinFallback = null;
 let placedPinCoords = null;
 let reportImageData = "";
+let confirmedReportLocation = null;
+let pendingReportLocation = null;
+let reportLocationMap = null;
+let reportLocationMarker = null;
+let reportAddressRequestId = 0;
 let currentUserCoords = null;
 let driveState = null;
 
@@ -364,6 +368,24 @@ function formatDateTime(dateString) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(dateString));
+}
+
+function formatThaiReportDateTime(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+  const parts = new Intl.DateTimeFormat("th-TH-u-ca-gregory-nu-latn", {
+    timeZone: "Asia/Bangkok",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(date);
+  const part = (type) => parts.find((item) => item.type === type)?.value || "";
+  return `${part("day")}/${part("month")}/${part("year")} ${part("hour")}:${part("minute")}`;
 }
 
 function setText(id, value) {
@@ -570,6 +592,26 @@ async function geocodeAddress(value) {
     lat: Number(results[0].lat),
     lng: Number(results[0].lon)
   };
+}
+
+function reportCoordinateLabel(lat, lng) {
+  return `พิกัด ${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)}`;
+}
+
+async function reverseGeocodeReportLocation(lat, lng) {
+  const fallback = reportCoordinateLabel(lat, lng);
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&accept-language=th`;
+    const response = await fetch(url, { headers: { "Accept": "application/json" } });
+    if (!response.ok) {
+      return fallback;
+    }
+    const result = await response.json();
+    return result.display_name || fallback;
+  } catch (error) {
+    console.warn("Reverse geocoding failed.", error);
+    return fallback;
+  }
 }
 
 async function resolveAddress(value, fallbackId) {
@@ -1460,7 +1502,7 @@ function reportPopupTemplate(report) {
       <dl>
         <dt>Type</dt><dd>${report.type}</dd>
         <dt>Location</dt><dd>${report.lat.toFixed(6)}, ${report.lng.toFixed(6)}</dd>
-        <dt>Time</dt><dd>${formatDateTime(report.timestamp)}</dd>
+        <dt>Time</dt><dd>${formatThaiReportDateTime(report.timestamp)}</dd>
         <dt>Reporter</dt><dd>${report.reporter}</dd>
       </dl>
       <p>${report.description || "-"}</p>
@@ -1540,7 +1582,7 @@ function renderReportList() {
       button.innerHTML = `
         <strong>${report.title}</strong>
         <span>${report.type} • ${report.lat.toFixed(5)}, ${report.lng.toFixed(5)}</span>
-        <small>${formatDateTime(report.timestamp)} • ${report.reporter}</small>
+        <small>${formatThaiReportDateTime(report.timestamp)} • ${report.reporter}</small>
       `;
       button.addEventListener("click", () => openReportFromList(report.id));
       reportList.appendChild(button);
@@ -1552,28 +1594,23 @@ function renderReports() {
   renderReportList();
 }
 
-function toLocalInputValue(date = new Date()) {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 16);
-}
-
 function populateReportTimestamp() {
-  const input = document.getElementById("reportTimestamp");
-  if (input) {
-    input.value = toLocalInputValue();
+  const timestamp = new Date();
+  const hiddenInput = document.getElementById("reportTimestamp");
+  const displayInput = document.getElementById("reportTimestampDisplay");
+  if (hiddenInput) {
+    hiddenInput.value = timestamp.toISOString();
+  }
+  if (displayInput) {
+    displayInput.value = formatThaiReportDateTime(timestamp);
   }
 }
 
-function setReportCoordinates(lat, lng) {
-  document.getElementById("reportLat").value = Number(lat).toFixed(6);
-  document.getElementById("reportLng").value = Number(lng).toFixed(6);
-}
-
 function openReportsPanel() {
+  if (!reportsPanel) return;
   reportsPanel.classList.add("visible");
   reportsPanel.setAttribute("aria-hidden", "false");
   populateReportTimestamp();
-  renderReportList();
 }
 
 function openAlertsPanel() {
@@ -1591,9 +1628,133 @@ function closeAlertsPanel() {
 }
 
 function closeReportsPanel() {
+  if (!reportsPanel) return;
   reportsPanel.classList.remove("visible");
   reportsPanel.setAttribute("aria-hidden", "true");
-  reportPickMode = false;
+}
+
+function closeReportLocationDialog() {
+  const dialog = document.getElementById("reportLocationDialog");
+  if (!dialog) return;
+  dialog.classList.remove("visible");
+  dialog.setAttribute("aria-hidden", "true");
+}
+
+async function updatePendingReportAddress(lat, lng) {
+  const addressHost = document.getElementById("reportLocationAddress");
+  const requestId = ++reportAddressRequestId;
+  if (addressHost) addressHost.textContent = "กำลังค้นหาที่อยู่...";
+  const address = await reverseGeocodeReportLocation(lat, lng);
+  if (requestId !== reportAddressRequestId || !pendingReportLocation) return;
+  pendingReportLocation.address = address;
+  if (addressHost) addressHost.textContent = address;
+}
+
+function setPendingReportLocation(lat, lng) {
+  pendingReportLocation = {
+    lat: Number(lat),
+    lng: Number(lng),
+    address: reportCoordinateLabel(lat, lng)
+  };
+  if (reportLocationMarker) {
+    reportLocationMarker.setLatLng([lat, lng]);
+  }
+  updatePendingReportAddress(lat, lng);
+}
+
+function openReportLocationDialog(coords) {
+  const dialog = document.getElementById("reportLocationDialog");
+  const mapHost = document.getElementById("reportLocationMap");
+  if (!dialog || !mapHost) return;
+
+  dialog.classList.add("visible");
+  dialog.setAttribute("aria-hidden", "false");
+  pendingReportLocation = {
+    lat: Number(coords.lat),
+    lng: Number(coords.lng),
+    address: reportCoordinateLabel(coords.lat, coords.lng)
+  };
+
+  if (typeof L === "undefined") {
+    document.getElementById("reportLocationAddress").textContent = pendingReportLocation.address;
+    showToast("ไม่สามารถโหลดแผนที่ได้ แต่ยังยืนยันพิกัดปัจจุบันได้");
+    return;
+  }
+
+  if (!reportLocationMap) {
+    reportLocationMap = L.map(mapHost, { zoomControl: true }).setView([coords.lat, coords.lng], 17);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(reportLocationMap);
+    reportLocationMarker = L.marker([coords.lat, coords.lng], { draggable: true }).addTo(reportLocationMap);
+    reportLocationMarker.on("dragend", () => {
+      const position = reportLocationMarker.getLatLng();
+      setPendingReportLocation(position.lat, position.lng);
+    });
+  } else {
+    reportLocationMap.setView([coords.lat, coords.lng], 17);
+    reportLocationMarker.setLatLng([coords.lat, coords.lng]);
+  }
+
+  window.setTimeout(() => reportLocationMap.invalidateSize(), 0);
+  updatePendingReportAddress(coords.lat, coords.lng);
+}
+
+function requestReportCurrentLocation() {
+  const button = document.getElementById("useReportCurrentLocation");
+  const label = button?.querySelector("span");
+  if (!navigator.geolocation) {
+    showToast("เบราว์เซอร์นี้ไม่รองรับการระบุตำแหน่ง");
+    return;
+  }
+  if (button) button.disabled = true;
+  if (label) label.textContent = "กำลังค้นหาตำแหน่ง...";
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      currentUserCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
+      if (button) button.disabled = false;
+      if (label) label.textContent = "ตำแหน่งปัจจุบัน";
+      openReportLocationDialog(currentUserCoords);
+    },
+    () => {
+      if (button) button.disabled = false;
+      if (label) label.textContent = "ตำแหน่งปัจจุบัน";
+      showToast("ไม่สามารถเข้าถึงตำแหน่งปัจจุบัน กรุณาอนุญาตการใช้ GPS");
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
+function confirmPendingReportLocation() {
+  if (!pendingReportLocation) {
+    showToast("ไม่พบตำแหน่งสำหรับยืนยัน");
+    return;
+  }
+  confirmedReportLocation = { ...pendingReportLocation };
+  const summary = document.getElementById("reportLocationSummary");
+  if (summary) {
+    summary.classList.add("is-confirmed");
+    summary.querySelector("span").textContent = confirmedReportLocation.address;
+  }
+  closeReportLocationDialog();
+}
+
+function showReportSuccessPopup() {
+  const popup = document.getElementById("reportSuccessPopup");
+  if (!popup) return;
+  popup.classList.add("visible");
+  popup.setAttribute("aria-hidden", "false");
+  document.body.classList.add("submission-success-open");
+  document.getElementById("confirmReportSuccess")?.focus();
+}
+
+function closeReportSuccessPopup() {
+  const popup = document.getElementById("reportSuccessPopup");
+  if (!popup) return;
+  popup.classList.remove("visible");
+  popup.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("submission-success-open");
 }
 
 function focusReport(report) {
@@ -1715,7 +1876,6 @@ function openFallbackPinPopup(lat, lng) {
 
 function togglePlacePinMode() {
   placePinMode = !placePinMode;
-  reportPickMode = false;
   document.getElementById("placePinButton").classList.toggle("active", placePinMode);
   showToast(placePinMode ? "Place pin mode: click the map or drag the pin." : "Place pin mode off");
   if (placePinMode && hasLeaflet && !placedPinMarker) {
@@ -1739,12 +1899,6 @@ function mapPointFromFallbackEvent(event) {
 }
 
 function handleMapPlacement(lat, lng) {
-  if (reportPickMode) {
-    setReportCoordinates(lat, lng);
-    reportPickMode = false;
-    showToast("Report location selected");
-    return;
-  }
   if (placePinMode) {
     setPlacedPin(lat, lng);
   }
@@ -1752,64 +1906,100 @@ function handleMapPlacement(lat, lng) {
 
 async function submitReport(event) {
   event.preventDefault();
+  const form = document.getElementById("reportForm");
+  const submitButton = document.getElementById("reportSubmitButton");
   const title = document.getElementById("reportTitle").value.trim();
   const description = document.getElementById("reportDescription").value.trim();
-  const type = document.getElementById("reportType").value;
-  const reporter = document.getElementById("reporterName").value.trim() || "Demo Reporter";
-  const lat = Number(document.getElementById("reportLat").value);
-  const lng = Number(document.getElementById("reportLng").value);
-  const timestamp = document.getElementById("reportTimestamp").value || toLocalInputValue();
 
   if (!title) {
-    showToast("กรอกหัวข้อรายงานก่อน");
+    showToast("กรุณากรอกหัวข้อรายงาน");
     return;
   }
 
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    showToast("เลือกตำแหน่งรายงานบนแผนที่หรือกรอกพิกัดก่อน");
+  if (!confirmedReportLocation) {
+    showToast("กรุณากดตำแหน่งปัจจุบันและยืนยันตำแหน่งบนแผนที่");
     return;
   }
 
+  const timestampInput = document.getElementById("reportTimestamp");
+  const timestamp = timestampInput?.value || new Date().toISOString();
   const report = {
     id: Date.now(),
-    type,
+    type: "Other",
     title,
     description,
     image: reportImageData,
-    lat,
-    lng,
+    lat: confirmedReportLocation.lat,
+    lng: confirmedReportLocation.lng,
     timestamp,
-    reporter
+    reporter: "ประชาชน"
   };
 
-  reports.push(report);
-  saveLocalState("gpsConstructionReports", reports);
-
-  // Post report to Astro Central Server
-  fetch('/api/reports', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(report)
-  }).then(() => {
-    syncWithServer();
-  }).catch(err => console.error("Failed to post report to server:", err));
-
-  // Closed Loop: feed this citizen report as a compliance signal
-  // (links to nearest zone + triggers re-audit if ≥3 same-type reports)
-  if (typeof window.FeedbackModule !== "undefined" && window.FeedbackModule.ingestReportAsFeedback) {
-    window.FeedbackModule.ingestReportAsFeedback(report);
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "กำลังส่งรายงาน...";
   }
 
-  renderReports();
-  focusReport(report);
-  document.getElementById("reportForm").reset();
-  document.getElementById("reporterName").value = reporter;
-  reportImageData = "";
-  const preview = document.getElementById("reportImagePreview");
-  preview.classList.remove("visible");
-  preview.removeAttribute("src");
-  populateReportTimestamp();
-  showToast(`Report submitted: ${report.title}`);
+  try {
+    const response = await fetch('/api/reports', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(report)
+    });
+    let payload = {};
+    try {
+      payload = await response.json();
+    } catch (error) {
+      console.warn("Could not parse report response.", error);
+    }
+    if (!response.ok) {
+      throw new Error(payload.error || "ไม่สามารถบันทึกรายงานได้");
+    }
+
+    const returnedReport = payload.report || report;
+    const canonicalReport = {
+      ...returnedReport,
+      lat: Number(returnedReport.lat),
+      lng: Number(returnedReport.lng)
+    };
+    const existingIndex = reports.findIndex((item) => String(item.id) === String(canonicalReport.id));
+    if (existingIndex >= 0) {
+      reports[existingIndex] = canonicalReport;
+    } else {
+      reports.push(canonicalReport);
+    }
+    saveLocalState("gpsConstructionReports", reports);
+
+    if (typeof window.FeedbackModule !== "undefined" && window.FeedbackModule.ingestReportAsFeedback) {
+      window.FeedbackModule.ingestReportAsFeedback(canonicalReport);
+    }
+
+    renderReports();
+    closeReportsPanel();
+    focusReport(canonicalReport);
+    form.reset();
+    reportImageData = "";
+    confirmedReportLocation = null;
+    pendingReportLocation = null;
+    reportAddressRequestId += 1;
+    const preview = document.getElementById("reportImagePreview");
+    preview.classList.remove("visible");
+    preview.removeAttribute("src");
+    const summary = document.getElementById("reportLocationSummary");
+    summary?.classList.remove("is-confirmed");
+    const summaryText = summary?.querySelector("span");
+    if (summaryText) summaryText.textContent = "ยังไม่ได้ยืนยันตำแหน่ง";
+    populateReportTimestamp();
+    showReportSuccessPopup();
+  } catch (error) {
+    console.error("Failed to submit report.", error);
+    showToast(error.message || "ส่งรายงานไม่สำเร็จ กรุณาลองใหม่");
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = "ส่งรายงาน";
+    }
+  }
 }
 
 async function handleDetailImageUpload(event) {
@@ -2371,7 +2561,6 @@ function bindEvents() {
   on("driveRoute", "click", driveRoute);
   on("placePinButton", "click", togglePlacePinMode);
   on("createReportFab", "click", openReportsPanel);
-  on("createReportButton", "click", openReportsPanel);
   on("closeReports", "click", closeReportsPanel);
   on("closeAlerts", "click", () => showPanelUnified("home"));
   on("simulateAlert", "click", () => {
@@ -2387,33 +2576,29 @@ function bindEvents() {
   });
   on("reportForm", "submit", submitReport);
   on("detailImageUpload", "change", handleDetailImageUpload);
-  on("reportImage", "change", handleReportImageUpload);
-  on("selectReportLocation", "click", () => {
-    reportPickMode = true;
-    placePinMode = false;
-    const ppb = document.getElementById("placePinButton");
-    if (ppb) ppb.classList.remove("active");
-    openReportsPanel();
-    showToast("Click the map to set report location");
+  on("reportCameraImage", "change", handleReportImageUpload);
+  on("reportGalleryImage", "change", handleReportImageUpload);
+  on("useReportCurrentLocation", "click", requestReportCurrentLocation);
+  on("closeReportLocation", "click", closeReportLocationDialog);
+  on("cancelReportLocation", "click", closeReportLocationDialog);
+  on("confirmReportLocation", "click", confirmPendingReportLocation);
+  on("closeReportSuccess", "click", closeReportSuccessPopup);
+  on("confirmReportSuccess", "click", closeReportSuccessPopup);
+  const reportLocationDialog = document.getElementById("reportLocationDialog");
+  reportLocationDialog?.addEventListener("click", (event) => {
+    if (event.target === reportLocationDialog) closeReportLocationDialog();
   });
-  on("useReportCurrentLocation", "click", () => {
-    if (currentUserCoords) {
-      setReportCoordinates(currentUserCoords.lat, currentUserCoords.lng);
-      showToast("Current location added to report");
-      return;
+  const reportSuccessPopup = document.getElementById("reportSuccessPopup");
+  reportSuccessPopup?.addEventListener("click", (event) => {
+    if (event.target === reportSuccessPopup) closeReportSuccessPopup();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    if (reportSuccessPopup?.classList.contains("visible")) {
+      closeReportSuccessPopup();
+    } else if (reportLocationDialog?.classList.contains("visible")) {
+      closeReportLocationDialog();
     }
-    if (!navigator.geolocation) {
-      showToast("Browser does not support location");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        currentUserCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
-        setReportCoordinates(currentUserCoords.lat, currentUserCoords.lng);
-        showToast("Current location added to report");
-      },
-      () => showToast("Could not access current location")
-    );
   });
   document.querySelectorAll(".nav-item").forEach((button) => {
     if (button.dataset.nav) {

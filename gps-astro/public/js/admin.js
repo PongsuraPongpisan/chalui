@@ -189,6 +189,22 @@ const MOCK_COVER_PHOTO = 'https://images.unsplash.com/photo-1541888946425-d81bb1
 
 // ─── Section 2: Citizen Reports (feedback + reports panel submissions) ───
 
+function formatCitizenReportDateTime(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  const parts = new Intl.DateTimeFormat('th-TH-u-ca-gregory-nu-latn', {
+    timeZone: 'Asia/Bangkok',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const part = (type) => parts.find((item) => item.type === type)?.value || '';
+  return `${part('day')}/${part('month')}/${part('year')} ${part('hour')}:${part('minute')}`;
+}
+
 function renderCitizenReports() {
   const container = document.getElementById('citizenReportList');
   if (!container) return;
@@ -207,7 +223,7 @@ function renderCitizenReports() {
       <div class="admin-queue-card" data-citizen-kind="feedback" data-citizen-id="${fb.id}" role="button" tabindex="0">
         <div class="queue-info">
           <strong>${type.label}</strong>
-          <span>${fb.zoneName || 'ไม่ระบุ zone'} — ${new Date(fb.createdAt).toLocaleString('th-TH')}</span>
+          <span>${fb.zoneName || 'ไม่ระบุ zone'} — ${formatCitizenReportDateTime(fb.createdAt)}</span>
         </div>
       </div>
     `;
@@ -217,7 +233,7 @@ function renderCitizenReports() {
       <div class="admin-queue-card" data-citizen-kind="report" data-citizen-id="${r.id}" role="button" tabindex="0">
         <div class="queue-info">
           <strong>${r.title}</strong>
-          <span>${r.type} — ${new Date(r.timestamp).toLocaleString('th-TH')}</span>
+          <span>${r.type} — ${formatCitizenReportDateTime(r.timestamp)}</span>
         </div>
       </div>
   `).join('');
@@ -246,7 +262,7 @@ function openCitizenFeedbackDetail(fb) {
   document.getElementById('citizenDetailDescription').textContent = fb.description || '-';
   document.getElementById('citizenDetailZone').textContent = fb.zoneName || 'ไม่ระบุ';
   document.getElementById('citizenDetailGps').textContent = (fb.lat && fb.lng) ? `${fb.lat.toFixed(6)}, ${fb.lng.toFixed(6)}` : '-';
-  document.getElementById('citizenDetailTime').textContent = new Date(fb.createdAt).toLocaleString('th-TH');
+  document.getElementById('citizenDetailTime').textContent = formatCitizenReportDateTime(fb.createdAt);
   document.getElementById('citizenDetailReporter').textContent = fb.contractorName || 'ไม่ระบุ';
 
   const photoHost = document.getElementById('citizenDetailPhotos');
@@ -263,7 +279,7 @@ function openCitizenReportDetail(r) {
   document.getElementById('citizenDetailDescription').textContent = r.description || '-';
   document.getElementById('citizenDetailZone').textContent = '-';
   document.getElementById('citizenDetailGps').textContent = (r.lat && r.lng) ? `${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}` : '-';
-  document.getElementById('citizenDetailTime').textContent = new Date(r.timestamp).toLocaleString('th-TH');
+  document.getElementById('citizenDetailTime').textContent = formatCitizenReportDateTime(r.timestamp);
   document.getElementById('citizenDetailReporter').textContent = r.reporter || 'ไม่ระบุ';
 
   const photoHost = document.getElementById('citizenDetailPhotos');

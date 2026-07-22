@@ -4373,3 +4373,151 @@ body.approval-modal-open { overflow: hidden; }
   .admin-status-filter-btn { flex: 0 0 auto; min-width: 96px; }
   .admin-report-card-footer .admin-work-status-badge { order: -1; }
 }
+
+
+/* ─── Citizen report form, location picker, and completion dialog ─── */
+#reportsPanel .reports-body {
+  grid-template-rows: auto;
+}
+
+.report-location-actions {
+  grid-template-columns: 1fr;
+}
+
+.report-current-location {
+  width: 100%;
+  min-height: 46px;
+}
+
+.report-location-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.report-location-summary i {
+  margin-top: 2px;
+  color: #94a3b8;
+}
+
+.report-location-summary.is-confirmed {
+  border-style: solid;
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.report-location-summary.is-confirmed i {
+  color: #16a34a;
+}
+
+.report-form input[readonly] {
+  cursor: default;
+  background: #f8fafc;
+  color: #334155;
+}
+
+#reportSubmitButton:disabled,
+#useReportCurrentLocation:disabled,
+#confirmReportLocation:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.report-location-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 3900;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.report-location-dialog.visible {
+  display: flex;
+}
+
+.report-location-dialog-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(100%, 560px);
+  max-height: min(760px, calc(100dvh - 40px));
+  overflow: hidden;
+  border: 1px solid rgba(23, 32, 28, 0.12);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+}
+
+.report-location-dialog-body {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+#reportLocationMap {
+  width: 100%;
+  height: 340px;
+  min-height: 240px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #e8efeb;
+}
+
+.report-location-address {
+  min-height: 54px;
+  padding: 11px 12px;
+  border-radius: 9px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.report-location-dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+#reportSuccessPopup .submission-success-card h2 {
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .report-location-dialog {
+    align-items: flex-end;
+    padding: 10px 10px max(10px, env(safe-area-inset-bottom));
+  }
+
+  .report-location-dialog-panel {
+    max-height: calc(100dvh - 20px - env(safe-area-inset-bottom));
+    border-radius: 16px 16px 10px 10px;
+  }
+
+  #reportLocationMap {
+    height: min(45dvh, 330px);
+    min-height: 230px;
+  }
+}
+
+@media (max-width: 430px) {
+  .report-location-dialog-actions {
+    grid-template-columns: 1fr;
+  }
+}

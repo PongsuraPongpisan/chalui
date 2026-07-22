@@ -117,7 +117,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <a href="/" class="nav-item hover-scale"><i class="fa-solid fa-arrow-left"></i><span>เลือก role</span></a>
         <button class="nav-item active hover-scale" data-nav="home" type="button"><i class="fa-solid fa-map"></i><span>แผนที่</span></button>
         <button class="nav-item hover-scale" data-nav="alerts" type="button"><i class="fa-solid fa-bell"></i><span>แจ้งเตือน</span></button>
-        <button class="nav-item hover-scale" data-nav="reports" type="button"><i class="fa-solid fa-flag"></i><span>Reports</span></button>
+        <button class="nav-item hover-scale" data-nav="reports" type="button"><i class="fa-solid fa-flag"></i><span>แจ้งเหตุ</span></button>
       </nav>
 
       <div class="toast map-ui" id="toast" role="status" aria-live="polite"></div>
@@ -143,44 +143,62 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       </section>
 
       <section class="reports-panel map-ui" id="reportsPanel" aria-hidden="true">
-        <header class="detail-header"><div><p class="eyebrow">Reports</p><h2>Citizen Reports</h2></div><button class="panel-toggle" id="closeReports" type="button">X</button></header>
+        <header class="detail-header"><div><p class="eyebrow">แจ้งเหตุ</p><h2>แจ้งเหตุ</h2></div><button class="panel-toggle" id="closeReports" type="button" aria-label="ปิดแบบฟอร์มแจ้งเหตุ">X</button></header>
         <div class="reports-body">
           <form class="report-form" id="reportForm">
-            <div class="field-grid compact">
-              <label><span>ประเภท</span><select id="reportType"><option value="Construction">Construction</option><option value="Road Damage">Road Damage</option><option value="Accident">Accident</option><option value="Traffic">Traffic</option><option value="Other">Other</option></select></label>
-              <label><span>ชื่อ</span><input id="reporterName" type="text" value="Demo Reporter"></label>
-            </div>
-            <label><span>หัวข้อ</span><input id="reportTitle" type="text" placeholder="หัวข้อรายงาน"></label>
-            <label><span>รายละเอียด</span><textarea id="reportDescription" rows="2" placeholder="รายละเอียด"></textarea></label>
-            <div class="field-grid compact">
-              <label><span>Lat</span><input id="reportLat" type="number" step="0.000001"></label>
-              <label><span>Lng</span><input id="reportLng" type="number" step="0.000001"></label>
-            </div>
+            <label><span>หัวข้อ</span><input id="reportTitle" type="text" placeholder="หัวข้อรายงาน" required></label>
+            <label><span>รายละเอียด</span><textarea id="reportDescription" rows="3" placeholder="รายละเอียด"></textarea></label>
             <div class="report-location-actions">
-              <button class="secondary-action" id="selectReportLocation" type="button"><i class="fa-solid fa-map-pin"></i><span>Pick</span></button>
-              <button class="secondary-action" id="useReportCurrentLocation" type="button"><i class="fa-solid fa-location-crosshairs"></i><span>GPS</span></button>
+              <button class="secondary-action report-current-location" id="useReportCurrentLocation" type="button"><i class="fa-solid fa-location-crosshairs"></i><span>ตำแหน่งปัจจุบัน</span></button>
+            </div>
+            <div class="report-location-summary" id="reportLocationSummary" aria-live="polite">
+              <i class="fa-solid fa-location-dot"></i><span>ยังไม่ได้ยืนยันตำแหน่ง</span>
             </div>
             <div class="photo-upload-area">
-              <label class="camera-button" for="reportImage">
+              <label class="camera-button" for="reportCameraImage">
                 <i class="fa-solid fa-camera"></i>
                 <span>ถ่ายรูป</span>
               </label>
-              <label class="gallery-button" for="reportImage">
+              <label class="gallery-button" for="reportGalleryImage">
                 <i class="fa-solid fa-images"></i>
                 <span>เลือกรูป</span>
               </label>
-              <input id="reportImage" class="visually-hidden" type="file" accept="image/*" capture="environment">
+              <input id="reportCameraImage" class="visually-hidden" type="file" accept="image/*" capture="environment">
+              <input id="reportGalleryImage" class="visually-hidden" type="file" accept="image/*">
             </div>
-            <img class="report-image-preview" id="reportImagePreview" alt="Preview">
-            <label><span>เวลา</span><input id="reportTimestamp" type="datetime-local"></label>
-            <button class="primary-action" type="submit">Submit</button>
+            <img class="report-image-preview" id="reportImagePreview" alt="ตัวอย่างรูปที่แนบ">
+            <label><span>เวลา</span><input id="reportTimestampDisplay" type="text" readonly aria-readonly="true"></label>
+            <input id="reportTimestamp" type="hidden">
+            <button class="primary-action" id="reportSubmitButton" type="submit">ส่งรายงาน</button>
           </form>
-          <section class="report-list-section">
-            <div class="report-list-header"><strong>Report List</strong><button class="secondary-action small" id="createReportButton" type="button">Create</button></div>
-            <div class="report-list" id="reportList"></div>
-          </section>
         </div>
       </section>
+
+      <div class="report-location-dialog" id="reportLocationDialog" role="dialog" aria-modal="true" aria-labelledby="reportLocationDialogTitle" aria-hidden="true">
+        <div class="report-location-dialog-panel">
+          <header class="detail-header">
+            <div><p class="eyebrow">ตำแหน่งแจ้งเหตุ</p><h2 id="reportLocationDialogTitle">ปรับตำแหน่งบนแผนที่</h2></div>
+            <button class="panel-toggle" id="closeReportLocation" type="button" aria-label="ปิดแผนที่">X</button>
+          </header>
+          <div class="report-location-dialog-body">
+            <div id="reportLocationMap" aria-label="แผนที่สำหรับปรับตำแหน่งแจ้งเหตุ"></div>
+            <div class="report-location-address" id="reportLocationAddress" aria-live="polite">กำลังค้นหาที่อยู่...</div>
+            <div class="report-location-dialog-actions">
+              <button class="secondary-action" id="cancelReportLocation" type="button">ยกเลิก</button>
+              <button class="primary-action" id="confirmReportLocation" type="button">ยืนยันตำแหน่ง</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="submission-success-popup" id="reportSuccessPopup" role="dialog" aria-modal="true" aria-labelledby="reportSuccessTitle" aria-hidden="true">
+        <div class="submission-success-card">
+          <button class="submission-success-close" id="closeReportSuccess" type="button" aria-label="ปิด"><i class="fa-solid fa-xmark"></i></button>
+          <div class="submission-success-check"><i class="fa-solid fa-check"></i></div>
+          <h2 id="reportSuccessTitle">เสร็จสิ้น ขอบคุณสำหรับความร่วมมือ</h2>
+          <button class="submission-success-action" id="confirmReportSuccess" type="button">ตกลง</button>
+        </div>
+      </div>
       <section class="reports-panel map-ui" id="alertsPanel" aria-hidden="true">
         <header class="detail-header"><div><p class="eyebrow">Notifications</p><h2>การแจ้งเตือน</h2></div><button class="panel-toggle" id="closeAlerts" type="button">X</button></header>
         <div class="reports-body">
