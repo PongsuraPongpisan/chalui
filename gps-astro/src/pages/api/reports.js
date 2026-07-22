@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabase.js";
+import { YANANG_PROBLEM_META } from "../../lib/yanang-integration.js";
 
 export const prerender = false;
 
@@ -40,21 +41,52 @@ function rowToClient(row) {
   };
 }
 
-export async function GET() {
-  const { data, error } = await supabase
-    .from("reports")
-    .select("*")
-    .order("created_at", { ascending: false });
+function yanangRowToClient(row) {
+  const meta = YANANG_PROBLEM_META[row.problem_type] || YANANG_PROBLEM_META.other;
+  return {
+    id: row.id,
+    type: meta.type,
+    title: meta.title,
+    description: row.description,
+    image: null,
+    images: [],
+    lat: row.lat,
+    lng: row.lng,
+    timestamp: row.created_at,
+    reporter: "ย่านาง AI",
+    status: row.status,
+    projectId: row.zone_id,
+    problemType: row.problem_type,
+    source: "yanang",
+  };
+}
 
-  if (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+export async function GET() {
+  const [reportsResult, yanangResult] = await Promise.all([
+    supabase.from("reports").select("*").order("created_at", { ascending: false }),
+    supabase
+      .from("yanang_reports")
+      .select("id,zone_id,problem_type,description,lat,lng,status,created_at")
+      .order("created_at", { ascending: false }),
+  ]);
+
+  if (reportsResult.error) {
+    return new Response(JSON.stringify({ error: reportsResult.error.message }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
   }
+  if (yanangResult.error) {
+    console.warn("[yanang] Admin queue could not load Yanang reports:", yanangResult.error.message);
+  }
 
-  return new Response(JSON.stringify(data.map(rowToClient)), {
-    headers: { "Content-Type": "application/json" },
+  const reports = [
+    ...(reportsResult.data || []).map(rowToClient),
+    ...(yanangResult.data || []).map(yanangRowToClient),
+  ].sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+
+  return new Response(JSON.stringify(reports), {
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store, max-age=0" },
   });
 }
 
